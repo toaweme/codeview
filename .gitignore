@@ -1,0 +1,9 @@
+.DS_Store
+.idea/
+
+# compiled binaries, the build task emits into ./bin/
+**/bin/
+
+# local multi-module development workspace (never committed)
+go.work
+go.work.sum
