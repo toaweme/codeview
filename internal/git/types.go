@@ -144,6 +144,33 @@ type History struct {
 	Partial bool
 }
 
+type Bucket string
+
+const (
+	BucketDay   Bucket = "day"
+	BucketWeek  Bucket = "week"
+	BucketMonth Bucket = "month"
+)
+
+// HistogramQuery bounds default to the first and last commit.
+type HistogramQuery struct {
+	Bucket Bucket
+	Since  time.Time
+	Until  time.Time
+}
+
+type HistogramBucket struct {
+	Start time.Time `json:"start"`
+	Count int       `json:"count"`
+}
+
+// Histogram includes empty buckets, oldest first.
+type Histogram struct {
+	Buckets []HistogramBucket `json:"buckets"`
+	First   *time.Time        `json:"first"`
+	Last    *time.Time        `json:"last"`
+}
+
 type Signature struct {
 	Name  string    `json:"name"`
 	Email string    `json:"email"`
