@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>codeview</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='4' cy='4' r='2' fill='%2320a39e'/%3E%3Ccircle cx='4' cy='12' r='2' fill='%2320a39e'/%3E%3Ccircle cx='12' cy='8' r='2' fill='%2320a39e'/%3E%3Cpath d='M4 6v4M4 8h6' stroke='%2320a39e' stroke-width='1.5' fill='none'/%3E%3C/svg%3E" />
+    <script>
+      (() => {
+        try {
+          const s = localStorage.getItem('gv:theme') || 'system'
+          const m = window.matchMedia('(prefers-color-scheme: dark)').matches
+          const d = s === 'dark' || (s === 'system' && m)
+          const e = document.documentElement
+          e.classList.toggle('dark', d)
+          e.style.colorScheme = d ? 'dark' : 'light'
+        } catch (_) {}
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

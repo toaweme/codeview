@@ -9,5 +9,6 @@ go.work
 go.work.sum
 
 # frontend dependencies and build output, the placeholder keeps go:embed compiling
+ui/node_modules/
 ui/dist/*
 !ui/dist/.gitkeep

@@ -1,0 +1,247 @@
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --canvas: hsl(213 22% 89%);
+  --island: hsl(210 40% 99%);
+  --island-muted: hsl(212 32% 95.5%);
+  --background: var(--island);
+  --foreground: hsl(215 30% 11%);
+  --sidebar: var(--island);
+
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+
+  --muted: hsl(212 24% 92.5%);
+  --muted-foreground: hsl(215 14% 38%);
+  --faint: hsl(215 10% 56%);
+
+  --hover: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --accent: color-mix(in oklab, var(--foreground) 7.5%, transparent);
+  --accent-foreground: var(--foreground);
+  --active: color-mix(in oklab, var(--primary) 13%, transparent);
+
+  --border: hsl(214 20% 90.5%);
+  --input: hsl(214 18% 84%);
+
+  --primary: hsl(177 57% 37%);
+  --primary-foreground: hsl(0 0% 100%);
+  --ring: hsl(177 55% 43%);
+
+  --add: hsl(140 45% 32%);
+  --del: hsl(356 55% 46%);
+  --add-bg: hsl(140 40% 94.5%);
+  --del-bg: hsl(356 55% 96%);
+  --add-word: hsl(140 42% 84%);
+  --del-word: hsl(356 58% 89%);
+  --add-gutter: hsl(140 36% 92%);
+  --del-gutter: hsl(356 48% 94%);
+  --hunk-bg: color-mix(in oklab, var(--foreground) 3%, transparent);
+  --hunk-fg: hsl(212 18% 50%);
+
+  --line-sel: color-mix(in oklab, var(--primary) 9%, var(--background));
+  --line-sel-gutter: color-mix(in oklab, var(--primary) 15%, var(--background));
+
+  --radius: 8px;
+  --island-radius: 12px;
+  --gap: 8px;
+
+  --row-h: 36px;
+  --topbar-h: 48px;
+  --rail-w: 52px;
+  --control-h: 32px;
+  --badge-h: 22px;
+  --sidebar-w: 300px;
+  --code-size: 14px;
+  --code-line: 23px;
+
+  --warn: hsl(34 80% 36%);
+  --info: hsl(205 70% 40%);
+
+  --code-font: 'Geist Variable', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.dark {
+  --canvas: hsl(220 22% 3%);
+  --island: hsl(216 18% 8%);
+  --island-muted: hsl(216 16% 11.5%);
+  --background: var(--island);
+  --foreground: hsl(210 25% 90%);
+  --sidebar: var(--island);
+
+  --muted: hsl(214 16% 13%);
+  --muted-foreground: hsl(213 12% 60%);
+  --faint: hsl(213 9% 40%);
+
+  --hover: color-mix(in oklab, var(--foreground) 4.5%, transparent);
+  --accent: color-mix(in oklab, var(--foreground) 7%, transparent);
+  --active: color-mix(in oklab, var(--primary) 14%, transparent);
+
+  --border: hsl(214 14% 13%);
+  --input: hsl(214 12% 18%);
+
+  --primary: hsl(174 68% 51%);
+  --primary-foreground: hsl(222 40% 8%);
+  --ring: hsl(174 66% 54%);
+
+  --add: hsl(140 42% 58%);
+  --del: hsl(356 65% 66%);
+  --add-bg: hsl(145 26% 9%);
+  --del-bg: hsl(355 26% 10%);
+  --add-word: hsl(145 32% 17%);
+  --del-word: hsl(355 36% 20%);
+  --add-gutter: hsl(145 24% 11%);
+  --del-gutter: hsl(355 24% 12%);
+  --hunk-fg: hsl(212 16% 52%);
+
+  --warn: hsl(38 85% 62%);
+  --info: hsl(205 80% 68%);
+
+  --line-sel: color-mix(in oklab, var(--primary) 9%, var(--background));
+  --line-sel-gutter: color-mix(in oklab, var(--primary) 15%, var(--background));
+}
+
+@theme {
+  --spacing: 4px;
+
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 20px;
+  --text-base: 15px;
+  --text-base--line-height: 22px;
+  --text-lg: 17px;
+  --text-lg--line-height: 24px;
+  --text-xl: 20px;
+  --text-xl--line-height: 28px;
+  --text-2xl: 26px;
+  --text-2xl--line-height: 34px;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-island: var(--island);
+  --color-island-muted: var(--island-muted);
+  --color-warn: var(--warn);
+  --color-info: var(--info);
+  --color-background: var(--background);
+  --color-sidebar: var(--sidebar);
+  --color-hover: var(--hover);
+  --color-active: var(--active);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
+  --color-add: var(--add);
+  --color-del: var(--del);
+  --color-add-bg: var(--add-bg);
+  --color-del-bg: var(--del-bg);
+  --color-add-word: var(--add-word);
+  --color-del-word: var(--del-word);
+  --color-add-gutter: var(--add-gutter);
+  --color-del-gutter: var(--del-gutter);
+  --color-hunk-bg: var(--hunk-bg);
+  --color-hunk-fg: var(--hunk-fg);
+  --color-line-sel: var(--line-sel);
+  --color-line-sel-gutter: var(--line-sel-gutter);
+
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: calc(var(--radius) - 1px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-code);
+  --font-code: var(--code-font);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background-color: var(--canvas);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background-color: color-mix(in oklab, var(--primary) 26%, transparent);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--foreground) 22%, transparent)
+      transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklab, var(--foreground) 22%, transparent);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklab, var(--foreground) 38%, transparent);
+  }
+}
+
+@layer components {
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  kbd.key {
+    display: inline-flex;
+    min-width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    border-radius: 5px;
+    background: var(--accent);
+    color: var(--muted-foreground);
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .island {
+    background-color: var(--island);
+    border-radius: var(--island-radius);
+  }
+}
+
+@keyframes gv-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
