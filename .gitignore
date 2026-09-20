@@ -7,3 +7,7 @@
 # local multi-module development workspace (never committed)
 go.work
 go.work.sum
+
+# frontend dependencies and build output, the placeholder keeps go:embed compiling
+ui/dist/*
+!ui/dist/.gitkeep
