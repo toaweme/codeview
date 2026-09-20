@@ -46,6 +46,7 @@ func (h *Handler) Routes() []server.Route {
 	}
 	return []server.Route{
 		get("/api/repos", h.repos),
+		get("/api/activity", h.activity),
 		get("/api/refs", h.refs),
 		get("/api/tree", h.tree),
 		get("/api/blob", h.blob),
@@ -138,6 +139,28 @@ func (h *Handler) repos(w http.ResponseWriter, r *http.Request) {
 		repos = []git.RepoSummary{}
 	}
 	server.WriteJSON(w, http.StatusOK, reposResponse{Repos: repos})
+}
+
+func (h *Handler) activity(w http.ResponseWriter, r *http.Request) {
+	q := git.ActivityQuery{Org: r.URL.Query().Get("org"), Limit: git.DefaultActivityLimit}
+	if v := r.URL.Query().Get("limit"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n <= 0 {
+			h.fail(
+				w,
+				r,
+				fmt.Errorf("limit %q is not a positive number: %w", v, git.ErrInvalidArgument),
+			)
+			return
+		}
+		q.Limit = min(n, git.MaxActivityLimit)
+	}
+	act, err := h.store.Activity(r.Context(), q)
+	if err != nil {
+		h.fail(w, r, fmt.Errorf("failed to read recent activity: %w", err))
+		return
+	}
+	server.WriteJSON(w, http.StatusOK, act)
 }
 
 func (h *Handler) refs(w http.ResponseWriter, r *http.Request) {

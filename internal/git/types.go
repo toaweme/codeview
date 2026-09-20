@@ -16,6 +16,7 @@ var (
 // Store discovers repositories and opens them by name.
 type Store interface {
 	List(ctx context.Context) ([]RepoSummary, error)
+	Activity(ctx context.Context, q ActivityQuery) (Activity, error)
 	Open(ctx context.Context, name string) (Repo, error)
 	Close() error
 }
@@ -71,6 +72,45 @@ type Tag struct {
 	Name     string    `json:"name"`
 	Commit   string    `json:"commit"`
 	TaggedAt time.Time `json:"taggedAt"`
+}
+
+type ActivityQuery struct {
+	Org   string
+	Limit int
+}
+
+type Activity struct {
+	Commits  []ActivityCommit `json:"commits"`
+	Tags     []ActivityTag    `json:"tags"`
+	Branches []ActivityBranch `json:"branches"`
+}
+
+type ActivityCommit struct {
+	Repo        string    `json:"repo"`
+	Hash        string    `json:"hash"`
+	Subject     string    `json:"subject"`
+	Author      Signature `json:"author"`
+	CommittedAt time.Time `json:"committedAt"`
+	Ref         string    `json:"ref"`
+}
+
+type ActivityTag struct {
+	Repo     string    `json:"repo"`
+	Name     string    `json:"name"`
+	Commit   string    `json:"commit"`
+	TaggedAt time.Time `json:"taggedAt"`
+	Previous string    `json:"previous"`
+}
+
+// ActivityBranch counts ahead and behind against the default branch.
+type ActivityBranch struct {
+	Repo      string    `json:"repo"`
+	Name      string    `json:"name"`
+	Commit    string    `json:"commit"`
+	Subject   string    `json:"subject"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	Ahead     int       `json:"ahead"`
+	Behind    int       `json:"behind"`
 }
 
 type Ref struct {

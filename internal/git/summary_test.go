@@ -75,3 +75,77 @@ func Test_CLIStore_List_CacheFollowsRefs(t *testing.T) {
 		t.Fatalf("branch count = %d after adding a branch, want 3", got)
 	}
 }
+
+func Test_CLIStore_Activity(t *testing.T) {
+	f, store := summaryStore(t)
+	light := git.ActivityTag{Repo: f.Name, Name: "light", Commit: f.Third, Previous: "v1.0"}
+	featureX := git.ActivityBranch{
+		Repo:    f.Name,
+		Name:    "feature/x",
+		Commit:  f.Feature,
+		Subject: "greet louder",
+		Ahead:   1,
+	}
+	tests := []struct {
+		name     string
+		q        git.ActivityQuery
+		commits  []string
+		tags     []git.ActivityTag
+		branches []git.ActivityBranch
+	}{
+		{
+			name:    "all",
+			q:       git.ActivityQuery{},
+			commits: []string{f.Third, f.Second, f.Initial},
+			tags: []git.ActivityTag{
+				light,
+				{Repo: f.Name, Name: "v1.0", Commit: f.Second},
+			},
+			branches: []git.ActivityBranch{featureX},
+		},
+		{
+			name:     "limited",
+			q:        git.ActivityQuery{Org: "acme", Limit: 1},
+			commits:  []string{f.Third},
+			tags:     []git.ActivityTag{light},
+			branches: []git.ActivityBranch{featureX},
+		},
+		{
+			name:     "other org",
+			q:        git.ActivityQuery{Org: "other"},
+			commits:  []string{},
+			tags:     []git.ActivityTag{},
+			branches: []git.ActivityBranch{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			act, err := store.Activity(context.Background(), tt.q)
+			if err != nil {
+				t.Fatalf("activity: %v", err)
+			}
+			commits := []string{}
+			for _, c := range act.Commits {
+				if c.Repo != f.Name || c.Ref != "main" {
+					t.Fatalf("commit %+v has the wrong repo or ref", c)
+				}
+				commits = append(commits, c.Hash)
+			}
+			if !reflect.DeepEqual(commits, tt.commits) {
+				t.Fatalf("commits = %v, want %v", commits, tt.commits)
+			}
+			for i := range act.Tags {
+				act.Tags[i].TaggedAt = time.Time{}
+			}
+			if !reflect.DeepEqual(act.Tags, tt.tags) {
+				t.Fatalf("tags = %+v, want %+v", act.Tags, tt.tags)
+			}
+			for i := range act.Branches {
+				act.Branches[i].UpdatedAt = time.Time{}
+			}
+			if !reflect.DeepEqual(act.Branches, tt.branches) {
+				t.Fatalf("branches = %+v, want %+v", act.Branches, tt.branches)
+			}
+		})
+	}
+}

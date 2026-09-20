@@ -63,6 +63,10 @@ func Test_API_Status(t *testing.T) {
 		status int
 	}{
 		{"repos", "/api/repos", nil, 200},
+		{"activity", "/api/activity", nil, 200},
+		{"activity org", "/api/activity", params{"org": "acme", "limit": "5"}, 200},
+		{"activity bad limit", "/api/activity", params{"limit": "x"}, 400},
+		{"activity zero limit", "/api/activity", params{"limit": "0"}, 400},
 		{"refs", "/api/refs", params{"repo": f.Name}, 200},
 		{"refs missing repo param", "/api/refs", nil, 400},
 		{"refs unknown repo", "/api/refs", params{"repo": "acme/nope"}, 404},
@@ -133,6 +137,7 @@ func Test_API_NoStore(t *testing.T) {
 		status   int
 	}{
 		{"repos", "/api/repos", nil, http.StatusOK},
+		{"activity", "/api/activity", nil, http.StatusOK},
 		{"refs", "/api/refs", params{"repo": f.Name}, http.StatusOK},
 		{"tree by branch", "/api/tree", params{"repo": f.Name, "ref": "main"}, http.StatusOK},
 		{"tree by hash", "/api/tree", params{"repo": f.Name, "ref": f.Third}, http.StatusOK},
@@ -404,6 +409,7 @@ func Test_API_Blame(t *testing.T) {
 func Test_API_Summaries(t *testing.T) {
 	_, h := newServer(t)
 	repos := decode(t, get(h, "/api/repos", nil))["repos"].([]any)[0].(map[string]any)
+	act := decode(t, get(h, "/api/activity", nil))
 	tests := []struct {
 		name string
 		body map[string]any
@@ -422,6 +428,7 @@ func Test_API_Summaries(t *testing.T) {
 				"activity",
 			},
 		},
+		{"activity", act, []string{"commits", "tags", "branches"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

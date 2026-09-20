@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,9 +17,10 @@ import (
 )
 
 const (
-	MaxActivityLimit = 50
-	summaryWorkers   = 8
-	week             = 7 * 24 * time.Hour
+	MaxActivityLimit     = 50
+	DefaultActivityLimit = 30
+	summaryWorkers       = 8
+	week                 = 7 * 24 * time.Hour
 )
 
 type cachedSummary struct {
@@ -26,7 +29,58 @@ type cachedSummary struct {
 }
 
 type repoSummary struct {
-	summary RepoSummary
+	summary  RepoSummary
+	commits  []ActivityCommit
+	tags     []ActivityTag
+	branches []ActivityBranch
+}
+
+func (s *CLIStore) Activity(ctx context.Context, q ActivityQuery) (Activity, error) {
+	names, err := s.discover()
+	if err != nil {
+		return Activity{}, err
+	}
+	if org := strings.Trim(q.Org, "/"); org != "" {
+		kept := names[:0:0]
+		for _, name := range names {
+			if strings.HasPrefix(name, org+"/") {
+				kept = append(kept, name)
+			}
+		}
+		names = kept
+	}
+	limit := q.Limit
+	if limit <= 0 {
+		limit = DefaultActivityLimit
+	}
+	limit = min(limit, MaxActivityLimit)
+	summaries, err := s.summaries(ctx, names)
+	if err != nil {
+		return Activity{}, err
+	}
+	act := Activity{
+		Commits:  []ActivityCommit{},
+		Tags:     []ActivityTag{},
+		Branches: []ActivityBranch{},
+	}
+	for _, sum := range summaries {
+		act.Commits = append(act.Commits, sum.commits...)
+		act.Tags = append(act.Tags, sum.tags...)
+		act.Branches = append(act.Branches, sum.branches...)
+	}
+	sort.SliceStable(act.Commits, func(i, j int) bool {
+		return act.Commits[i].CommittedAt.After(act.Commits[j].CommittedAt)
+	})
+	sort.SliceStable(act.Tags, func(i, j int) bool {
+		return act.Tags[i].TaggedAt.After(act.Tags[j].TaggedAt)
+	})
+	sort.SliceStable(act.Branches, func(i, j int) bool {
+		return act.Branches[i].UpdatedAt.After(act.Branches[j].UpdatedAt)
+	})
+	act.Commits = act.Commits[:min(limit, len(act.Commits))]
+	act.Tags = act.Tags[:min(limit, len(act.Tags))]
+	act.Branches = act.Branches[:min(limit, len(act.Branches))]
+	return act, nil
 }
 
 func (s *CLIStore) summaries(ctx context.Context, names []string) ([]*repoSummary, error) {
@@ -132,7 +186,10 @@ func (r *cliRepo) summarise(ctx context.Context, end time.Time) (*repoSummary, e
 		return nil, fmt.Errorf("failed to read repository info: %w", err)
 	}
 	sum := &repoSummary{
-		summary: RepoSummary{RepoInfo: info, Activity: make([]int, ActivityWeeks)},
+		summary:  RepoSummary{RepoInfo: info, Activity: make([]int, ActivityWeeks)},
+		commits:  []ActivityCommit{},
+		tags:     []ActivityTag{},
+		branches: []ActivityBranch{},
 	}
 	out, err := r.run(
 		ctx,
@@ -161,6 +218,17 @@ func (r *cliRepo) summarise(ctx context.Context, end time.Time) (*repoSummary, e
 			sum.summary.BranchCount++
 			if name == info.DefaultBranch {
 				tip = commit
+				continue
+			}
+			if len(sum.branches) < MaxActivityLimit {
+				branch := ActivityBranch{
+					Repo:      r.name,
+					Name:      name,
+					Commit:    commit,
+					Subject:   f[4],
+					UpdatedAt: when,
+				}
+				sum.branches = append(sum.branches, branch)
 			}
 		} else if name, ok := strings.CutPrefix(f[0], "refs/tags/"); ok {
 			sum.summary.TagCount++
@@ -169,15 +237,45 @@ func (r *cliRepo) summarise(ctx context.Context, end time.Time) (*repoSummary, e
 			}
 		}
 	}
+	for i, tag := range tags[:min(len(tags), MaxActivityLimit)] {
+		at := ActivityTag{Repo: r.name, Name: tag.Name, Commit: tag.Commit, TaggedAt: tag.TaggedAt}
+		if i+1 < len(tags) {
+			at.Previous = tags[i+1].Name
+		}
+		sum.tags = append(sum.tags, at)
+	}
 	if len(tags) > 0 {
 		sum.summary.LatestTag = &tags[0]
 	}
 	if tip == "" {
 		return sum, nil
 	}
+	for i := range sum.branches {
+		b := &sum.branches[i]
+		b.Ahead, b.Behind, err = r.aheadBehind(ctx, tip, b.Commit)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"failed to compare branch %q with %q: %w",
+				b.Name,
+				info.DefaultBranch,
+				err,
+			)
+		}
+	}
 	recent, err := r.Log(ctx, LogQuery{Commit: tip, Limit: MaxActivityLimit})
 	if err != nil {
 		return nil, fmt.Errorf("failed to read recent history: %w", err)
+	}
+	for _, c := range recent.Commits {
+		commit := ActivityCommit{
+			Repo:        r.name,
+			Hash:        c.Hash,
+			Subject:     c.Subject,
+			Author:      c.Author,
+			CommittedAt: c.Committer.Date,
+			Ref:         info.DefaultBranch,
+		}
+		sum.commits = append(sum.commits, commit)
 	}
 	if len(recent.Commits) > 0 {
 		c := recent.Commits[0]
@@ -188,6 +286,31 @@ func (r *cliRepo) summarise(ctx context.Context, end time.Time) (*repoSummary, e
 		return nil, err
 	}
 	return sum, nil
+}
+
+func (r *cliRepo) aheadBehind(ctx context.Context, base, head string) (int, int, error) {
+	out, err := r.run(
+		ctx,
+		"rev-list",
+		"--left-right",
+		"--count",
+		"--end-of-options",
+		base+"..."+head,
+		"--",
+	)
+	if err != nil {
+		return 0, 0, err
+	}
+	f := strings.Fields(string(out))
+	if len(f) != 2 {
+		return 0, 0, fmt.Errorf("failed to parse rev-list counts %q: %w", out, io.ErrUnexpectedEOF)
+	}
+	behind, errB := strconv.Atoi(f[0])
+	ahead, errA := strconv.Atoi(f[1])
+	if err := errors.Join(errB, errA); err != nil {
+		return 0, 0, fmt.Errorf("failed to parse rev-list counts %q: %w", out, err)
+	}
+	return ahead, behind, nil
 }
 
 func (r *cliRepo) weeklyCommits(ctx context.Context, tip string, end time.Time) ([]int, error) {
