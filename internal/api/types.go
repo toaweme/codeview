@@ -39,3 +39,25 @@ type logResponse struct {
 	// Partial means an author-date filter stopped scanning early.
 	Partial bool `json:"partial,omitempty"`
 }
+
+type commitResponse struct {
+	Commit git.Commit     `json:"commit"`
+	Files  []git.FileDiff `json:"files"`
+}
+
+type compareResponse struct {
+	Base      string `json:"base"`
+	Head      string `json:"head"`
+	MergeBase string `json:"mergeBase"`
+	Ahead     int    `json:"ahead"`
+	Behind    int    `json:"behind"`
+	Diverged  bool   `json:"diverged"`
+	// Boundary is excluded from Commits and nil without a common ancestor.
+	Boundary *git.Commit    `json:"boundary"`
+	Commits  []git.Commit   `json:"commits"`
+	Files    []git.FileDiff `json:"files"`
+}
+
+type blameResponse struct {
+	Ranges []git.BlameRange `json:"ranges"`
+}

@@ -20,10 +20,12 @@ import (
 )
 
 const (
-	maxBlobBytes    = 2 << 20
-	maxReadmeBytes  = 512 << 10
-	defaultLogLimit = 50
-	maxLogLimit     = 500
+	maxBlobBytes      = 2 << 20
+	maxReadmeBytes    = 512 << 10
+	defaultLogLimit   = 50
+	maxLogLimit       = 500
+	maxCompareCommits = 250
+	compareDirect     = "direct"
 )
 
 // Handler serves the API over a git store.
@@ -51,6 +53,9 @@ func (h *Handler) Routes() []server.Route {
 		get("/api/render", h.render),
 		get("/api/log", h.log),
 		get("/api/log/histogram", h.histogram),
+		get("/api/commit", h.commit),
+		get("/api/compare", h.compare),
+		get("/api/blame", h.blame),
 		get("/api/*", h.notFound),
 	}
 }
@@ -322,4 +327,157 @@ func (h *Handler) raw(w http.ResponseWriter, r *http.Request) {
 	if _, err := io.Copy(w, br); err != nil && !errors.Is(err, context.Canceled) {
 		h.logger.Debug("api.raw.aborted", "repo", res.repo.Name(), "path", p, "error", err)
 	}
+}
+
+func (h *Handler) commit(w http.ResponseWriter, r *http.Request) {
+	repo, err := h.openRepo(r)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	hash := r.URL.Query().Get("hash")
+	if hash == "" {
+		h.fail(w, r, fmt.Errorf("the hash parameter is required: %w", git.ErrInvalidArgument))
+		return
+	}
+	c, err := repo.Commit(r.Context(), hash)
+	if err != nil {
+		h.fail(w, r, fmt.Errorf("failed to read commit %q: %w", hash, err))
+		return
+	}
+	base := ""
+	if len(c.Parents) > 0 {
+		base = c.Parents[0]
+	}
+	files, err := repo.Diff(r.Context(), base, c.Hash)
+	if err != nil {
+		h.fail(w, r, fmt.Errorf("failed to diff commit %q: %w", hash, err))
+		return
+	}
+	server.WriteJSON(w, http.StatusOK, commitResponse{Commit: c, Files: files})
+}
+
+func (h *Handler) compare(w http.ResponseWriter, r *http.Request) {
+	repo, err := h.openRepo(r)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	q := r.URL.Query()
+	baseRef, headRef := q.Get("base"), q.Get("head")
+	if baseRef == "" || headRef == "" {
+		h.fail(
+			w,
+			r,
+			fmt.Errorf("the base and head parameters are required: %w", git.ErrInvalidArgument),
+		)
+		return
+	}
+	base, err := repo.Resolve(r.Context(), baseRef)
+	if err != nil {
+		h.fail(w, r, fmt.Errorf("failed to resolve base %q: %w", baseRef, err))
+		return
+	}
+	head, err := repo.Resolve(r.Context(), headRef)
+	if err != nil {
+		h.fail(w, r, fmt.Errorf("failed to resolve head %q: %w", headRef, err))
+		return
+	}
+	mode := q.Get("mode")
+	if mode != "" && mode != compareDirect {
+		h.fail(
+			w,
+			r,
+			fmt.Errorf("compare mode %q is not supported: %w", mode, git.ErrInvalidArgument),
+		)
+		return
+	}
+	mergeBase, err := repo.MergeBase(r.Context(), base, head)
+	if err != nil {
+		h.fail(w, r, fmt.Errorf("failed to compare %q with %q: %w", baseRef, headRef, err))
+		return
+	}
+	commits, err := repo.Log(
+		r.Context(),
+		git.LogQuery{Commit: head, Exclude: base, Limit: maxCompareCommits},
+	)
+	if err != nil {
+		h.fail(
+			w,
+			r,
+			fmt.Errorf("failed to list the commits between %q and %q: %w", baseRef, headRef, err),
+		)
+		return
+	}
+	ahead, err := repo.CountCommits(r.Context(), head, base, maxCompareCommits)
+	if err != nil {
+		h.fail(
+			w,
+			r,
+			fmt.Errorf(
+				"failed to count the commits of %q missing from %q: %w",
+				headRef,
+				baseRef,
+				err,
+			),
+		)
+		return
+	}
+	behind, err := repo.CountCommits(r.Context(), base, head, maxCompareCommits)
+	if err != nil {
+		h.fail(
+			w,
+			r,
+			fmt.Errorf(
+				"failed to count the commits of %q missing from %q: %w",
+				baseRef,
+				headRef,
+				err,
+			),
+		)
+		return
+	}
+	from := mergeBase
+	if mode == compareDirect {
+		from = base
+	}
+	files, err := repo.Diff(r.Context(), from, head)
+	if err != nil {
+		h.fail(w, r, fmt.Errorf("failed to diff %q with %q: %w", baseRef, headRef, err))
+		return
+	}
+	resp := compareResponse{
+		Base:      base,
+		Head:      head,
+		MergeBase: mergeBase,
+		Ahead:     ahead,
+		Behind:    behind,
+		Diverged:  ahead > 0 && behind > 0,
+		Commits:   commits.Commits,
+		Files:     files,
+	}
+	if from != "" {
+		boundary, err := repo.Commit(r.Context(), from)
+		if err != nil {
+			h.fail(w, r, fmt.Errorf("failed to read the starting commit %q: %w", from, err))
+			return
+		}
+		resp.Boundary = &boundary
+	}
+	server.WriteJSON(w, http.StatusOK, resp)
+}
+
+func (h *Handler) blame(w http.ResponseWriter, r *http.Request) {
+	res, err := h.resolve(r)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	p := r.URL.Query().Get("path")
+	ranges, err := res.repo.Blame(r.Context(), res.commit, p)
+	if err != nil {
+		h.fail(w, r, fmt.Errorf("failed to blame %q: %w", p, err))
+		return
+	}
+	server.WriteJSON(w, http.StatusOK, blameResponse{Ranges: ranges})
 }

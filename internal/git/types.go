@@ -33,6 +33,11 @@ type Repo interface {
 	Log(ctx context.Context, q LogQuery) (History, error)
 	CommitTimes(ctx context.Context, commit, path string, field DateField) ([]time.Time, error)
 	Commit(ctx context.Context, hash string) (Commit, error)
+	// Diff diffs head against the empty tree when base is empty.
+	Diff(ctx context.Context, base, head string) ([]FileDiff, error)
+	MergeBase(ctx context.Context, a, b string) (string, error)
+	CountCommits(ctx context.Context, commit, exclude string, limit int) (int, error)
+	Blame(ctx context.Context, commit, path string) ([]BlameRange, error)
 }
 
 // RepoInfo summarises a repository for listings.
@@ -184,4 +189,63 @@ type Commit struct {
 	Committer Signature `json:"committer"`
 	Subject   string    `json:"subject"`
 	Body      string    `json:"body"`
+}
+
+type FileStatus string
+
+const (
+	StatusAdded    FileStatus = "added"
+	StatusModified FileStatus = "modified"
+	StatusDeleted  FileStatus = "deleted"
+	StatusRenamed  FileStatus = "renamed"
+	StatusCopied   FileStatus = "copied"
+)
+
+// FileDiff counts every added and deleted line even when Hunks are truncated.
+type FileDiff struct {
+	Path      string     `json:"path"`
+	OldPath   string     `json:"oldPath"`
+	Status    FileStatus `json:"status"`
+	Additions int        `json:"additions"`
+	Deletions int        `json:"deletions"`
+	Binary    bool       `json:"binary"`
+	Truncated bool       `json:"truncated"`
+	Hunks     []Hunk     `json:"hunks"`
+}
+
+type Hunk struct {
+	OldStart int    `json:"oldStart"`
+	OldLines int    `json:"oldLines"`
+	NewStart int    `json:"newStart"`
+	NewLines int    `json:"newLines"`
+	Header   string `json:"header"`
+	Lines    []Line `json:"lines"`
+}
+
+type LineType string
+
+const (
+	LineContext LineType = "context"
+	LineAdd     LineType = "add"
+	LineDel     LineType = "del"
+)
+
+type Line struct {
+	Type LineType `json:"type"`
+	Old  *int     `json:"old"`
+	New  *int     `json:"new"`
+	Text string   `json:"text"`
+}
+
+type BlameCommit struct {
+	Hash    string    `json:"hash"`
+	Subject string    `json:"subject"`
+	Author  Signature `json:"author"`
+}
+
+// BlameRange covers the 1-based inclusive lines Start to End.
+type BlameRange struct {
+	Start  int         `json:"start"`
+	End    int         `json:"end"`
+	Commit BlameCommit `json:"commit"`
 }

@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -78,6 +80,10 @@ func Test_API_Status(t *testing.T) {
 		{"log", "/api/log", params{"repo": f.Name}, 200},
 		{"log bad limit", "/api/log", params{"repo": f.Name, "limit": "x"}, 400},
 		{"log bad cursor", "/api/log", params{"repo": f.Name, "cursor": "x"}, 400},
+		{"commit", "/api/commit", params{"repo": f.Name, "hash": f.Second}, 200},
+		{"commit missing hash", "/api/commit", params{"repo": f.Name}, 400},
+		{"compare", "/api/compare", params{"repo": f.Name, "base": "main", "head": "feature/x"}, 200},
+		{"blame", "/api/blame", params{"repo": f.Name, "path": "README.md"}, 200},
 		{"unknown endpoint", "/api/nope", nil, 404},
 	}
 	for _, tt := range tests {
@@ -135,6 +141,9 @@ func Test_API_NoStore(t *testing.T) {
 		{"render", "/api/render", params{"repo": f.Name, "ref": f.Third, "path": "README.md"}, http.StatusOK},
 		{"log", "/api/log", params{"repo": f.Name, "ref": f.Third}, http.StatusOK},
 		{"histogram", "/api/log/histogram", params{"repo": f.Name, "ref": f.Third}, http.StatusOK},
+		{"commit", "/api/commit", params{"repo": f.Name, "hash": f.Third}, http.StatusOK},
+		{"compare", "/api/compare", params{"repo": f.Name, "base": "v1.0", "head": "feature/x"}, http.StatusOK},
+		{"blame", "/api/blame", params{"repo": f.Name, "ref": f.Third, "path": "README.md"}, http.StatusOK},
 		{"bad request", "/api/tree", nil, http.StatusBadRequest},
 		{"unknown endpoint", "/api/nope", nil, http.StatusNotFound},
 	}
@@ -222,6 +231,173 @@ func Test_API_LogPaging(t *testing.T) {
 	want := []string{f.Feature, f.Third, f.Second, f.Initial}
 	if strings.Join(seen, ",") != strings.Join(want, ",") {
 		t.Fatalf("paged history = %v, want %v", seen, want)
+	}
+}
+
+func Test_API_CommitAndCompare(t *testing.T) {
+	f, h := newServer(t)
+	commit := decode(t, get(h, "/api/commit", params{"repo": f.Name, "hash": f.Third}))
+	files := commit["files"].([]any)
+	statuses := params{}
+	for _, fd := range files {
+		m := fd.(map[string]any)
+		statuses[m["path"].(string)] = m["status"].(string)
+	}
+	if statuses["docs/b.txt"] != "renamed" || statuses["notes/with space.txt"] != "added" {
+		t.Fatalf("commit files = %v", statuses)
+	}
+
+	query := params{"repo": f.Name, "base": "v1.0", "head": "feature/x"}
+	cmp := decode(t, get(h, "/api/compare", query))
+	if cmp["base"] != f.Second || cmp["head"] != f.Feature || cmp["mergeBase"] != f.Second {
+		t.Fatalf("compare = %v", cmp)
+	}
+	if n := len(cmp["commits"].([]any)); n != 2 {
+		t.Fatalf("compare commits = %d", n)
+	}
+	var mainFile map[string]any
+	for _, fd := range cmp["files"].([]any) {
+		if m := fd.(map[string]any); m["path"] == "src/main.go" {
+			mainFile = m
+		}
+	}
+	hunk := mainFile["hunks"].([]any)[0].(map[string]any)
+	for _, l := range hunk["lines"].([]any) {
+		line := l.(map[string]any)
+		if _, ok := line["old"]; !ok {
+			t.Fatalf("line lacks old: %v", line)
+		}
+		if line["type"] == "add" && line["old"] != nil {
+			t.Fatalf("added line has an old number: %v", line)
+		}
+	}
+}
+
+func Test_API_CompareMode(t *testing.T) {
+	f, h := newServer(t)
+	tests := []struct {
+		name      string
+		base      string
+		head      string
+		mode      string
+		status    int
+		files     int
+		commits   int
+		mergeBase string
+		boundary  string
+	}{
+		{"merge base hides what base moved on", "feature/x", "v1.0", "", 200, 0, 0, f.Second, f.Second},
+		{"direct shows every difference", "feature/x", "v1.0", "direct", 200, 3, 0, f.Second, f.Feature},
+		{"direct keeps commits of head", "v1.0", "feature/x", "direct", 200, 3, 2, f.Second, f.Second},
+		{"revision base", "main^", "feature/x", "", 200, 3, 2, f.Second, f.Second},
+		{"revision of a hash", f.Third[:8] + "~2", "main~1", "direct", 200, 2, 1, f.Initial, f.Initial},
+		{"range syntax is rejected", "main~1..x", "feature/x", "", 400, 0, 0, "", ""},
+		{"unknown mode is rejected", "v1.0", "feature/x", "sideways", 400, 0, 0, "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			params := params{"repo": f.Name, "base": tt.base, "head": tt.head}
+			if tt.mode != "" {
+				params["mode"] = tt.mode
+			}
+			rec := get(h, "/api/compare", params)
+			if rec.Code != tt.status {
+				t.Fatalf("status = %d, body %s", rec.Code, rec.Body.String())
+			}
+			if tt.status != 200 {
+				return
+			}
+			cmp := decode(t, rec)
+			if cmp["mergeBase"] != tt.mergeBase {
+				t.Fatalf("mergeBase = %v, want %s", cmp["mergeBase"], tt.mergeBase)
+			}
+			if n := len(cmp["files"].([]any)); n != tt.files {
+				t.Fatalf("files = %d, want %d", n, tt.files)
+			}
+			if n := len(cmp["commits"].([]any)); n != tt.commits {
+				t.Fatalf("commits = %d, want %d", n, tt.commits)
+			}
+			if b := cmp["boundary"].(map[string]any); b["hash"] != tt.boundary {
+				t.Fatalf("boundary = %v, want %s", b["hash"], tt.boundary)
+			}
+		})
+	}
+
+}
+
+func Test_API_CompareDivergence(t *testing.T) {
+	f, h := newServer(t)
+	// hotfix forks from Second, so it and main diverge
+	cmd := exec.Command(
+		"git",
+		"--git-dir="+filepath.Join(f.Root, "acme", "widgets.git"),
+		"commit-tree",
+		f.Third+"^{tree}",
+		"-p", f.Second,
+		"-m", "hotfix",
+	)
+	cmd.Env = append(
+		cmd.Environ(),
+		"GIT_AUTHOR_NAME=Ada",
+		"GIT_AUTHOR_EMAIL=ada@example.com",
+		"GIT_COMMITTER_NAME=Ada",
+		"GIT_COMMITTER_EMAIL=ada@example.com",
+	)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("commit-tree: %v", err)
+	}
+	hotfix := strings.TrimSpace(string(out))
+	tests := []struct {
+		name     string
+		base     string
+		head     string
+		ahead    float64
+		behind   float64
+		diverged bool
+	}{
+		{"linear tags", "v1.0", "light", 1, 0, false},
+		{"linear to a branch", "v1.0", "feature/x", 2, 0, false},
+		{"same ref", "main", "main", 0, 0, false},
+		{"swapped linear", "feature/x", "v1.0", 0, 2, false},
+		{"diverged", hotfix, "feature/x", 2, 1, true},
+		{"diverged swapped", "feature/x", hotfix, 1, 2, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := get(h, "/api/compare", params{"repo": f.Name, "base": tt.base, "head": tt.head})
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, body %s", rec.Code, rec.Body.String())
+			}
+			cmp := decode(t, rec)
+			if cmp["ahead"] != tt.ahead ||
+				cmp["behind"] != tt.behind ||
+				cmp["diverged"] != tt.diverged {
+				t.Fatalf(
+					"ahead = %v, behind = %v, diverged = %v, want %v, %v, %v",
+					cmp["ahead"],
+					cmp["behind"],
+					cmp["diverged"],
+					tt.ahead,
+					tt.behind,
+					tt.diverged,
+				)
+			}
+		})
+	}
+}
+
+func Test_API_Blame(t *testing.T) {
+	f, h := newServer(t)
+	query := params{"repo": f.Name, "ref": "v1.0", "path": "README.md"}
+	body := decode(t, get(h, "/api/blame", query))
+	ranges := body["ranges"].([]any)
+	if len(ranges) != 2 {
+		t.Fatalf("ranges = %v", ranges)
+	}
+	last := ranges[1].(map[string]any)
+	if last["start"] != float64(3) || last["commit"].(map[string]any)["hash"] != f.Second {
+		t.Fatalf("last range = %v", last)
 	}
 }
 

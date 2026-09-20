@@ -252,3 +252,104 @@ func Test_CLIRepo_Blob(t *testing.T) {
 		t.Fatalf("raw blob = %d bytes, size %d", len(data), size)
 	}
 }
+
+func Test_CLIRepo_Diff(t *testing.T) {
+	f, repo := open(t)
+	tests := []struct {
+		name  string
+		base  string
+		head  string
+		check func(t *testing.T, files []git.FileDiff)
+	}{
+		{"root", "", f.Initial, func(t *testing.T, files []git.FileDiff) {
+			if len(files) != 3 {
+				t.Fatalf("got %d files", len(files))
+			}
+			for _, fd := range files {
+				if fd.Status != git.StatusAdded ||
+					fd.OldPath != "" ||
+					fd.Deletions != 0 ||
+					fd.Additions == 0 {
+					t.Fatalf("root file = %+v", fd)
+				}
+			}
+		}},
+		{"binary and modify", f.Initial, f.Second, func(t *testing.T, files []git.FileDiff) {
+			byPath := map[string]git.FileDiff{}
+			for _, fd := range files {
+				byPath[fd.Path] = fd
+			}
+			if !byPath["logo.bin"].Binary || byPath["logo.bin"].Status != git.StatusAdded {
+				t.Fatalf("logo = %+v", byPath["logo.bin"])
+			}
+			readme := byPath["README.md"]
+			if readme.Status != git.StatusModified ||
+				readme.Additions != 1 ||
+				readme.Deletions != 1 ||
+				len(readme.Hunks) != 1 {
+				t.Fatalf("readme = %+v", readme)
+			}
+			lines := readme.Hunks[0].Lines
+			if lines[len(lines)-1].Type != git.LineAdd ||
+				*lines[len(lines)-1].New != 3 ||
+				lines[len(lines)-1].Old != nil {
+				t.Fatalf("last line = %+v", lines[len(lines)-1])
+			}
+		}},
+		{"rename and spaced add", f.Second, f.Third, func(t *testing.T, files []git.FileDiff) {
+			byPath := map[string]git.FileDiff{}
+			for _, fd := range files {
+				byPath[fd.Path] = fd
+			}
+			ren := byPath["docs/b.txt"]
+			if ren.Status != git.StatusRenamed || ren.OldPath != "docs/a.txt" {
+				t.Fatalf("rename = %+v", ren)
+			}
+			if byPath["notes/with space.txt"].Status != git.StatusAdded {
+				t.Fatalf("files = %+v", files)
+			}
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			files, err := repo.Diff(context.Background(), tt.base, tt.head)
+			if err != nil {
+				t.Fatalf("diff: %v", err)
+			}
+			tt.check(t, files)
+		})
+	}
+	base, err := repo.MergeBase(context.Background(), f.Second, f.Feature)
+	if err != nil || base != f.Second {
+		t.Fatalf("merge base = %s, %v", base, err)
+	}
+}
+
+func Test_CLIRepo_Blame(t *testing.T) {
+	f, repo := open(t)
+	ranges, err := repo.Blame(context.Background(), f.Second, "README.md")
+	if err != nil {
+		t.Fatalf("blame: %v", err)
+	}
+	want := []struct {
+		start, end int
+		hash       string
+	}{{1, 2, f.Initial}, {3, 3, f.Second}}
+	if len(ranges) != len(want) {
+		t.Fatalf("ranges = %+v", ranges)
+	}
+	for i, w := range want {
+		r := ranges[i]
+		if r.Start != w.start ||
+			r.End != w.end ||
+			r.Commit.Hash != w.hash ||
+			r.Commit.Author.Name != "Ada Lovelace" ||
+			r.Commit.Subject == "" {
+			t.Fatalf("range %d = %+v", i, r)
+		}
+	}
+	_, err = repo.Blame(context.Background(), f.Second, "docs")
+	if !errors.Is(err, git.ErrInvalidArgument) {
+		t.Fatalf("blame of a directory = %v", err)
+	}
+}

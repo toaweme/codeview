@@ -1,6 +1,7 @@
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -477,4 +478,171 @@ func (r *cliRepo) Commit(ctx context.Context, hash string) (Commit, error) {
 		return Commit{}, fmt.Errorf("commit %q does not exist: %w", hash, ErrNotFound)
 	}
 	return commits[0], nil
+}
+
+func (r *cliRepo) MergeBase(ctx context.Context, a, b string) (string, error) {
+	if !isHash(a) || !isHash(b) {
+		return "", fmt.Errorf(
+			"merge base of %q and %q needs two hashes: %w",
+			a,
+			b,
+			ErrInvalidArgument,
+		)
+	}
+	out, err := r.run(ctx, "merge-base", "--end-of-options", a, b)
+	base := strings.TrimSpace(string(out))
+	if err != nil {
+		var exit *exec.ExitError
+		if errors.As(err, &exit) && exit.ExitCode() == 1 && base == "" {
+			return "", fmt.Errorf("commits %q and %q share no history: %w", a, b, ErrNotFound)
+		}
+		return "", fmt.Errorf("failed to find the merge base of %q and %q: %w", a, b, err)
+	}
+	return base, nil
+}
+
+func (r *cliRepo) CountCommits(
+	ctx context.Context,
+	commit, exclude string,
+	limit int,
+) (int, error) {
+	if !isHash(commit) || !isHash(exclude) {
+		return 0, fmt.Errorf(
+			"counting the commits of %q not in %q needs two hashes: %w",
+			commit,
+			exclude,
+			ErrInvalidArgument,
+		)
+	}
+	if limit <= 0 {
+		return 0, fmt.Errorf("commit count limit %d is not positive: %w", limit, ErrInvalidArgument)
+	}
+	out, err := r.run(
+		ctx,
+		"rev-list",
+		"--count",
+		"--max-count="+strconv.Itoa(limit),
+		"--end-of-options",
+		commit,
+		"^"+exclude,
+		"--",
+	)
+	if err != nil {
+		return 0, fmt.Errorf(
+			"failed to count the commits of %q not in %q: %w",
+			commit,
+			exclude,
+			err,
+		)
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(string(out)))
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse commit count %q: %w", out, err)
+	}
+	return n, nil
+}
+
+func (r *cliRepo) Blame(ctx context.Context, commit, path string) ([]BlameRange, error) {
+	path, err := cleanPath(path)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := object(commit, path)
+	if err != nil {
+		return nil, err
+	}
+	info, err := r.cat.Info(obj)
+	if errors.Is(err, errMissing) {
+		return nil, fmt.Errorf("file %q does not exist: %w", path, ErrNotFound)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat file %q: %w", path, err)
+	}
+	if info.Type != "blob" {
+		return nil, fmt.Errorf("path %q is not a file: %w", path, ErrInvalidArgument)
+	}
+	out, err := r.run(ctx, "blame", "--incremental", commit, "--", path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to blame file %q: %w", path, err)
+	}
+	return parseBlame(out)
+}
+
+func parseBlame(out []byte) ([]BlameRange, error) {
+	type pending struct {
+		hash       string
+		start, num int
+	}
+	commits := map[string]*BlameCommit{}
+	var (
+		groups               []pending
+		cur                  *pending
+		authorTime, authorTZ string
+	)
+	sc := bufio.NewScanner(bytes.NewReader(out))
+	sc.Buffer(make([]byte, 64*1024), 16*1024*1024)
+	for sc.Scan() {
+		line := sc.Text()
+		if cur == nil {
+			f := strings.Fields(line)
+			if len(f) != 4 || !isHash(f[0]) {
+				return nil, fmt.Errorf(
+					"failed to parse blame group %q: %w",
+					line,
+					io.ErrUnexpectedEOF,
+				)
+			}
+			start, err1 := strconv.Atoi(f[2])
+			num, err2 := strconv.Atoi(f[3])
+			if err1 != nil || err2 != nil {
+				return nil, fmt.Errorf(
+					"failed to parse blame line numbers %q: %w",
+					line,
+					io.ErrUnexpectedEOF,
+				)
+			}
+			cur = &pending{hash: f[0], start: start, num: num}
+			if _, ok := commits[f[0]]; !ok {
+				commits[f[0]] = &BlameCommit{Hash: f[0]}
+			}
+			continue
+		}
+		key, value, _ := strings.Cut(line, " ")
+		c := commits[cur.hash]
+		switch key {
+		case "author":
+			c.Author.Name = value
+		case "author-mail":
+			c.Author.Email = strings.TrimSuffix(strings.TrimPrefix(value, "<"), ">")
+		case "author-time":
+			authorTime = value
+		case "author-tz":
+			authorTZ = value
+		case "summary":
+			c.Subject = value
+		case "filename":
+			if authorTime != "" {
+				c.Author.Date = unixTime(authorTime, authorTZ)
+				authorTime, authorTZ = "", ""
+			}
+			groups = append(groups, *cur)
+			cur = nil
+		}
+	}
+	if err := sc.Err(); err != nil {
+		return nil, fmt.Errorf("failed to scan blame output: %w", err)
+	}
+	sort.Slice(groups, func(i, j int) bool { return groups[i].start < groups[j].start })
+	ranges := []BlameRange{}
+	for _, g := range groups {
+		end := g.start + g.num - 1
+		if n := len(ranges); n > 0 {
+			if prev := &ranges[n-1]; prev.Commit.Hash == g.hash && prev.End+1 == g.start {
+				prev.End = end
+				continue
+			}
+		}
+		ranges = append(ranges, BlameRange{Start: g.start, End: end, Commit: *commits[g.hash]})
+	}
+	return ranges, nil
 }
