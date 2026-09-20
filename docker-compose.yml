@@ -1,0 +1,16 @@
+services:
+  soft-serve:
+    image: charmcli/soft-serve:v0.12.2
+    restart: unless-stopped
+    environment:
+      SOFT_SERVE_DATA_PATH: /soft-serve
+    ports:
+      - "127.0.0.1:23231:23231" # ssh
+      - "127.0.0.1:23232:23232" # http
+      - "127.0.0.1:9418:9418" # git daemon
+    volumes:
+      # codeview reads .data/soft-serve/repos from the host, never writing to it
+      - ./.data/soft-serve:/soft-serve
+
+  # a database of codeview's own, for review state, lands here once it exists
+  # db:

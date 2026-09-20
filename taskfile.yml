@@ -1,0 +1,48 @@
+version: '3'
+
+vars:
+  DATA: .data/soft-serve
+  GO_PKGS: ./...
+
+tasks:
+  build:
+    desc: Build the UI, then bin/codeview with ui/dist embedded
+    cmds:
+      - task: ui:build
+      - go build -o bin/codeview ./cmd/codeview
+
+  test:
+    desc: Run the Go tests
+    cmds:
+      - go test -race {{.GO_PKGS}}
+
+  check:
+    desc: Vet and test the Go code
+    cmds:
+      - go vet {{.GO_PKGS}}
+      - task: test
+
+  ui:install:
+    dir: ui
+    cmds:
+      - npm install
+    status:
+      - test -d node_modules
+
+  ui:build:
+    desc: Build the UI into ui/dist
+    dir: ui
+    deps: [ui:install]
+    cmds:
+      - npm run build
+
+  seed:
+    desc: Mirror a few public repositories into .data/soft-serve/repos/seed
+    vars:
+      REPOS: charmbracelet/soft-serve go-chi/chi toaweme/cli
+    cmds:
+      - mkdir -p {{.DATA}}/repos/seed
+      - for: { var: REPOS, split: ' ' }
+        cmd: |
+          dest={{.DATA}}/repos/seed/$(basename {{.ITEM}}).git
+          if [ -d "$dest" ]; then git --git-dir="$dest" fetch -q --prune origin; else git clone -q --mirror https://github.com/{{.ITEM}}.git "$dest"; fi

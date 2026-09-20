@@ -8,7 +8,14 @@
 go.work
 go.work.sum
 
+# task keeps its up-to-date checksums here
+.task/
+
+# soft-serve data from docker compose, including the seeded repos
+.data/
+
 # frontend dependencies and build output, the placeholder keeps go:embed compiling
 ui/node_modules/
 ui/dist/*
 !ui/dist/.gitkeep
+.blink/

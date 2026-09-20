@@ -1,0 +1,17 @@
+services:
+  - name: soft-serve
+    runtime: docker
+
+  - name: api
+    runtime: go
+    go:
+      package: ./cmd/codeview
+      args: [serve, --data, .data/soft-serve, --port, "8080"]
+    ports: [8080]
+    reload:
+      reload: true
+
+  - name: ui
+    runtime: node
+    dir: ui
+    ports: [5173]
