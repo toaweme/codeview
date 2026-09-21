@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Toaster } from '@/components/toast'
 import { TooltipProvider } from '@/components/tooltip'
 import { ThemeProvider } from '@/lib/theme'
 import { routeTree } from './routeTree.gen'
@@ -44,6 +45,7 @@ if (el) {
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <RouterProvider router={router} />
+            <Toaster />
           </TooltipProvider>
         </QueryClientProvider>
       </ThemeProvider>
