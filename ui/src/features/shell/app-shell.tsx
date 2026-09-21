@@ -1,11 +1,12 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Library, Moon, PanelLeft, Sun } from 'lucide-react'
+import { Code2, Library, Moon, PanelLeft, Sun } from 'lucide-react'
 import { WithShortcut } from '@/components/shortcut'
 import { Tooltip } from '@/components/tooltip'
 import { cn } from '@/lib/cn'
 import { useCommands } from '@/lib/commands'
 import { type KeyId, useKeys } from '@/lib/keymap'
 import { useTheme } from '@/lib/theme-context'
+import { repoLink } from '@/lib/url'
 import { usePersistedState } from '@/lib/use-persisted-state'
 import type { LinkTarget } from './top-line'
 
@@ -19,10 +20,14 @@ export function AppShell({
   section,
   sidebar,
   children,
+  repo,
+  linkRef,
 }: {
   section: Section
   sidebar: React.ReactNode
   children: React.ReactNode
+  repo?: string
+  linkRef?: string
 }) {
   const [open, setOpen] = usePersistedState('sidebar:open', true)
   const [width, setWidth] = usePersistedState('sidebar:width', DEFAULT_W)
@@ -84,6 +89,15 @@ export function AppShell({
         >
           <Library />
         </RailLink>
+        {repo && (
+          <RailLink
+            label="Code"
+            active={section === 'code'}
+            link={repoLink(repo, { kind: 'tree', ref: linkRef, path: '' })}
+          >
+            <Code2 />
+          </RailLink>
+        )}
         <div className="flex-1" />
         <RailButton
           label={open ? 'Hide sidebar' : 'Show sidebar'}

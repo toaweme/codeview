@@ -210,8 +210,29 @@
 }
 
 @layer components {
+  /* one fixed row height keeps the file view virtualizer exact */
+  .code {
+    font-family: var(--code-font);
+    font-size: var(--code-size);
+    line-height: var(--code-line);
+    tab-size: 1.75em;
+    font-variant-ligatures: none;
+  }
+
   .num {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* shiki dual theme, so a theme switch never re-highlights */
+  .tok {
+    color: var(--shiki-light);
+    font-style: var(--shiki-light-font-style, inherit);
+    font-weight: var(--shiki-light-font-weight, inherit);
+  }
+  .dark .tok {
+    color: var(--shiki-dark);
+    font-style: var(--shiki-dark-font-style, inherit);
+    font-weight: var(--shiki-dark-font-weight, inherit);
   }
 
   kbd.key {
