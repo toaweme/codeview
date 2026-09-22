@@ -1,5 +1,12 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Code2, Library, Moon, PanelLeft, Sun } from 'lucide-react'
+import {
+  Code2,
+  Library,
+  Moon,
+  PanelLeft,
+  RotateCcwClock,
+  Sun,
+} from 'lucide-react'
 import { WithShortcut } from '@/components/shortcut'
 import { Tooltip } from '@/components/tooltip'
 import { cn } from '@/lib/cn'
@@ -90,13 +97,22 @@ export function AppShell({
           <Library />
         </RailLink>
         {repo && (
-          <RailLink
-            label="Code"
-            active={section === 'code'}
-            link={repoLink(repo, { kind: 'tree', ref: linkRef, path: '' })}
-          >
-            <Code2 />
-          </RailLink>
+          <>
+            <RailLink
+              label="Code"
+              active={section === 'code'}
+              link={repoLink(repo, { kind: 'tree', ref: linkRef, path: '' })}
+            >
+              <Code2 />
+            </RailLink>
+            <RailLink
+              label="History"
+              active={section === 'history'}
+              link={repoLink(repo, { kind: 'commits', ref: linkRef, path: '' })}
+            >
+              <RotateCcwClock />
+            </RailLink>
+          </>
         )}
         <div className="flex-1" />
         <RailButton

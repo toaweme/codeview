@@ -59,6 +59,12 @@ export type Commit = {
 // partial means the author-date filter stopped early and older matches may be missing
 export type Log = { commits: Commit[]; next?: string; partial?: boolean }
 
+export type Histogram = {
+  buckets: { start: string; count: number }[]
+  first: string | null
+  last: string | null
+}
+
 // 1-based inclusive
 export type BlameRange = {
   start: number

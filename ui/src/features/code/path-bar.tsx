@@ -1,4 +1,4 @@
-import { Code2, ScanText } from 'lucide-react'
+import { Code2, RotateCcwClock, ScanText } from 'lucide-react'
 import type { ResolvedRef } from '@/api/queries'
 import {
   type Crumb,
@@ -69,6 +69,13 @@ export function ViewToggles({
       disabled: !file,
       link: repoLink(repo, { kind: 'blame', ref, path }),
       hash: keepHash,
+    },
+    {
+      key: 'history',
+      label: 'History',
+      icon: RotateCcwClock,
+      active: active === 'history',
+      link: repoLink(repo, { kind: 'commits', ref, path }),
     },
   ]
   return <ViewSwitch label="View" items={items} />

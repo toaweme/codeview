@@ -1,9 +1,10 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Code2, Copy, Link2, Pin, ScanText } from 'lucide-react'
+import { Code2, Copy, Link2, Pin, RotateCcwClock, ScanText } from 'lucide-react'
 import { resolveRef, useResolvedRef } from '@/api/queries'
 import { FileView } from '@/features/code/file-view'
 import { copyRepoLink } from '@/features/code/path-actions'
 import { TreeView } from '@/features/code/tree-view'
+import { CommitsView } from '@/features/commits/commits-view'
 import {
   AppShell,
   type Section,
@@ -41,6 +42,14 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
 
   const goCode = () =>
     navigate(repoLink(repo, { kind: 'tree', ref: linkRef, path: '' }))
+  const goHistory = () =>
+    navigate(
+      repoLink(repo, {
+        kind: 'commits',
+        ref: linkRef,
+        path: hasRef(view) ? view.path : '',
+      }),
+    )
   const pin = () => {
     if (!hasRef(view) || !resolved?.commit || view.ref === resolved.commit)
       return
@@ -79,6 +88,12 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
       label: 'Go to code',
       icon: Code2,
       run: goCode,
+    },
+    {
+      id: 'repo:history',
+      label: 'Go to history',
+      icon: RotateCcwClock,
+      run: goHistory,
     },
   ]
   if (isFile) {
@@ -139,6 +154,9 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
             blame={view.kind === 'blame'}
           />
         )
+        break
+      case 'commits':
+        body = <CommitsView repo={repo} resolved={resolved} path={view.path} />
         break
     }
   }

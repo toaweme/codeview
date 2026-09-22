@@ -1,11 +1,17 @@
-import { type QueryClient, queryOptions, useQuery } from '@tanstack/react-query'
+import {
+  infiniteQueryOptions,
+  type QueryClient,
+  queryOptions,
+  useQuery,
+} from '@tanstack/react-query'
 import { isCommitHash, splitRevision } from '@/lib/url'
-import { ApiError, getJSON, isNotFound } from './client'
+import { ApiError, getJSON, isNotFound, type Params } from './client'
 import type {
   Blame,
   Blob,
   Commit,
   FileList,
+  Histogram,
   Log,
   Refs,
   RepoList,
@@ -55,6 +61,46 @@ export const blameQuery = (repo: string, rev: string, path: string) =>
     queryKey: ['blame', repo, rev, path],
     queryFn: ({ signal }) =>
       getJSON<Blame>('blame', { repo, ref: rev, path }, signal),
+    staleTime: staleFor(rev),
+  })
+
+const LOG_PAGE = 50
+
+// the cursor is only valid under the filters that issued it
+export const logQuery = (
+  repo: string,
+  rev: string,
+  path: string,
+  filter: Params = {},
+) =>
+  infiniteQueryOptions({
+    queryKey: ['log', repo, rev, path, filter],
+    queryFn: ({ signal, pageParam }) =>
+      getJSON<Log>(
+        'log',
+        { ...filter, repo, ref: rev, path, cursor: pageParam, limit: LOG_PAGE },
+        signal,
+      ),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next || undefined,
+    staleTime: staleFor(rev),
+  })
+
+export const histogramQuery = (
+  repo: string,
+  rev: string,
+  path: string,
+  bucket: 'day' | 'week' | 'month',
+  dateField?: string,
+) =>
+  queryOptions({
+    queryKey: ['histogram', repo, rev, path, bucket, dateField ?? ''],
+    queryFn: ({ signal }) =>
+      getJSON<Histogram>(
+        'log/histogram',
+        { repo, ref: rev, path, bucket, dateField },
+        signal,
+      ),
     staleTime: staleFor(rev),
   })
 
