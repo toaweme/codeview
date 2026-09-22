@@ -275,3 +275,161 @@
     transform: translateX(300%);
   }
 }
+
+@layer components {
+  .markdown {
+    font-size: var(--text-base);
+    line-height: 1.7;
+    overflow-wrap: break-word;
+    color: var(--foreground);
+  }
+  .markdown > :first-child {
+    margin-top: 0;
+  }
+  .markdown > :last-child {
+    margin-bottom: 0;
+  }
+  .markdown :where(p, ul, ol, blockquote, pre, table, dl, details) {
+    margin: 0 0 16px;
+  }
+  .markdown :where(h1, h2, h3, h4, h5, h6) {
+    margin: 32px 0 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    scroll-margin-top: 16px;
+  }
+  .markdown h1 {
+    font-size: var(--text-2xl);
+  }
+  .markdown h2 {
+    font-size: var(--text-xl);
+  }
+  .markdown h3 {
+    font-size: var(--text-lg);
+  }
+  .markdown :where(h4, h5, h6) {
+    font-size: var(--text-base);
+  }
+  .markdown h6 {
+    color: var(--muted-foreground);
+  }
+  .markdown a {
+    color: var(--primary);
+    text-underline-offset: 3px;
+  }
+  .markdown a:hover {
+    text-decoration: underline;
+  }
+  .markdown strong {
+    font-weight: 600;
+  }
+  .markdown :where(ul, ol) {
+    padding-left: 1.6em;
+  }
+  .markdown ul {
+    list-style: disc;
+  }
+  .markdown ol {
+    list-style: decimal;
+  }
+  .markdown li + li,
+  .markdown li > :where(ul, ol) {
+    margin-top: 4px;
+  }
+  .markdown li > :where(ul, ol) {
+    margin-bottom: 0;
+  }
+  .markdown li:has(> input[type='checkbox']) {
+    list-style: none;
+    margin-left: -1.4em;
+  }
+  .markdown input[type='checkbox'] {
+    margin-right: 0.5em;
+    vertical-align: -2px;
+    accent-color: var(--primary);
+  }
+  .markdown img {
+    display: inline;
+    max-width: 100%;
+    height: auto;
+    vertical-align: middle;
+    border-radius: 4px;
+  }
+  .markdown p > a:has(> img) + a:has(> img) {
+    margin-left: 4px;
+  }
+  .markdown blockquote {
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: var(--island-muted);
+    color: var(--muted-foreground);
+  }
+  .markdown blockquote > :last-child {
+    margin-bottom: 0;
+  }
+  .markdown hr {
+    height: 4px;
+    margin: 28px 0;
+    border: 0;
+    border-radius: 2px;
+    background: var(--island-muted);
+  }
+  .markdown :not(pre) > code {
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--island-muted);
+    font-family: var(--code-font);
+    font-size: 0.9em;
+  }
+  .markdown pre {
+    overflow: auto;
+    padding: 14px 18px;
+    border-radius: 10px;
+    background: var(--island-muted);
+    font-family: var(--code-font);
+    font-size: var(--code-size);
+    line-height: var(--code-line);
+    tab-size: 1.75em;
+  }
+  .markdown pre code {
+    font-family: inherit;
+  }
+  .markdown table {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow: auto;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .markdown :where(th, td) {
+    padding: 8px 14px;
+    text-align: left;
+  }
+  .markdown th {
+    font-weight: 600;
+    background: var(--island-muted);
+  }
+  .markdown th:first-child {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+  }
+  .markdown th:last-child {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+  }
+  .markdown tr:nth-child(2n) td {
+    background: color-mix(in oklab, var(--island-muted) 50%, transparent);
+  }
+  .markdown details > summary {
+    cursor: pointer;
+  }
+  .markdown kbd {
+    padding: 1px 6px;
+    border-radius: 5px;
+    background: var(--accent);
+    font-size: var(--text-xs);
+  }
+}

@@ -37,6 +37,8 @@ export type Tree = {
   readme?: { path: string; content: string; html?: string }
 }
 
+export type Rendered = { path: string; html: string }
+
 export type Blob = {
   path: string
   size: number

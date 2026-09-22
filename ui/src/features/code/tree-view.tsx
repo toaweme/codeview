@@ -1,13 +1,21 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { FolderOpen, GitBranch, RotateCcwClock, Tag } from 'lucide-react'
+import {
+  BookOpen,
+  FolderOpen,
+  GitBranch,
+  RotateCcwClock,
+  Tag,
+} from 'lucide-react'
 import {
   logQuery,
   type ResolvedRef,
   reposQuery,
   treeQuery,
 } from '@/api/queries'
+import type { Tree } from '@/api/types'
 import { Badge } from '@/components/badge'
+import { Markdown } from '@/components/markdown'
 import { Shortcut } from '@/components/shortcut'
 import { ErrorState, Skeleton } from '@/features/shell/states'
 import { MoreMenu } from '@/features/shell/top-line'
@@ -51,12 +59,61 @@ export function TreeView({
             <Skeleton lines={12} className="px-0" />
           ) : tree.isError ? (
             <ErrorState error={tree.error} />
-          ) : tree.data.readme ? null : (
+          ) : tree.data.readme ? (
+            <Readme repo={repo} resolved={resolved} tree={tree.data} />
+          ) : (
             <NoReadme folder={!!path} count={tree.data.entries.length} />
           )}
         </div>
       </div>
     </>
+  )
+}
+
+function Readme({
+  repo,
+  resolved,
+  tree,
+}: {
+  repo: string
+  resolved: ResolvedRef
+  tree: Tree
+}) {
+  const readme = tree.readme
+  if (!readme) return null
+  const ref = resolved.isDefault ? undefined : resolved.name
+  const name = readme.path.slice(readme.path.lastIndexOf('/') + 1)
+  return (
+    <article>
+      <div
+        className={cn(
+          'flex items-center rounded-lg',
+          'mb-6 h-10 gap-2.5 pr-1.5 pl-3',
+          'bg-island-muted text-muted-foreground text-sm',
+        )}
+      >
+        <BookOpen className="size-4 shrink-0" aria-hidden />
+        <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
+        <Link
+          {...repoLink(repo, { kind: 'blob', ref, path: readme.path })}
+          className={cn(
+            'flex shrink-0 items-center rounded-md',
+            'h-7 px-2.5',
+            'whitespace-nowrap',
+            'transition-colors duration-100 hover:bg-hover hover:text-foreground',
+          )}
+        >
+          View file
+        </Link>
+      </div>
+      <Markdown
+        source={readme.content}
+        html={readme.html}
+        repo={repo}
+        rev={resolved.rev}
+        linkRef={ref}
+      />
+    </article>
   )
 }
 

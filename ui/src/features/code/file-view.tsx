@@ -1,15 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Download, FileCodeCorner } from 'lucide-react'
+import { BookOpen, Code2, Download, FileCodeCorner } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { apiUrl } from '@/api/client'
-import { blameQuery, blobQuery, type ResolvedRef } from '@/api/queries'
+import {
+  blameQuery,
+  blobQuery,
+  isMarkdownPath,
+  type ResolvedRef,
+  renderQuery,
+} from '@/api/queries'
 import type { Blame, BlameRange } from '@/api/types'
 import { Badge } from '@/components/badge'
 import { LineContent } from '@/components/code/tokens'
+import { Markdown } from '@/components/markdown'
 import { ErrorState, Skeleton } from '@/features/shell/states'
-import { Group, MoreMenu } from '@/features/shell/top-line'
+import { Group, MoreMenu, ViewSwitch } from '@/features/shell/top-line'
 import { getHighlight, useHighlightVersion } from '@/highlight'
 import { cn } from '@/lib/cn'
 import { useCommands } from '@/lib/commands'
@@ -48,6 +55,23 @@ export function FileView({
     enabled: !!resolved && blame,
   })
   const rawUrl = apiUrl('raw', { repo, ref: rev, path })
+  const navigate = useNavigate()
+  const hash = useLocation({ select: (l) => l.hash })
+
+  const md = isMarkdownPath(path) && !blame
+  const [mdMode, setMdMode] = useState<'rendered' | 'source'>(() =>
+    parseLineHash(hash) ? 'source' : 'rendered',
+  )
+  const showRendered = md && mdMode === 'rendered'
+  const rendered = useQuery({
+    ...renderQuery(repo, rev, path),
+    enabled: !!resolved && showRendered,
+  })
+  const switchMd = (mode: 'rendered' | 'source') => {
+    setMdMode(mode)
+    if (mode === 'rendered' && parseLineHash(hash))
+      navigate({ to: '.', hash: '', replace: true, resetScroll: false })
+  }
 
   const lineCount = useMemo(
     () => (blob.data?.content ? splitLines(blob.data.content).length : 0),
@@ -91,6 +115,27 @@ export function FileView({
             </span>
           </Group>
         )}
+        {md && (
+          <ViewSwitch
+            label="Markdown"
+            items={[
+              {
+                key: 'rendered',
+                label: 'Rendered',
+                icon: BookOpen,
+                active: mdMode === 'rendered',
+                onClick: () => switchMd('rendered'),
+              },
+              {
+                key: 'source',
+                label: 'Source',
+                icon: Code2,
+                active: mdMode === 'source',
+                onClick: () => switchMd('source'),
+              },
+            ]}
+          />
+        )}
         <ViewToggles
           repo={repo}
           resolved={resolved}
@@ -111,6 +156,22 @@ export function FileView({
         <ErrorState error={blob.error} />
       ) : blob.data.binary || blob.data.content === undefined ? (
         <BinaryFile path={path} rawUrl={rawUrl} size={blob.data.size} />
+      ) : showRendered ? (
+        <div className="min-h-0 flex-1 overflow-auto">
+          <div className="mx-auto w-full max-w-[860px] px-6 pt-4 pb-16">
+            {rendered.isPending ? (
+              <Skeleton lines={16} className="px-0" />
+            ) : (
+              <Markdown
+                source={blob.data.content}
+                html={rendered.data?.html}
+                repo={repo}
+                rev={rev}
+                linkRef={resolved.isDefault ? undefined : resolved.name}
+              />
+            )}
+          </div>
+        </div>
       ) : (
         <CodeLines
           key={`${repo}:${rev}:${path}`}

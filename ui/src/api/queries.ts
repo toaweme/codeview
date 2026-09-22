@@ -15,6 +15,7 @@ import type {
   Histogram,
   Log,
   Refs,
+  Rendered,
   RepoList,
   Tree,
 } from './types'
@@ -64,6 +65,20 @@ export const blameQuery = (repo: string, rev: string, path: string) =>
       getJSON<Blame>('blame', { repo, ref: rev, path }, signal),
     staleTime: staleFor(rev),
   })
+
+export const renderQuery = (repo: string, rev: string, path: string) =>
+  queryOptions({
+    queryKey: ['render', repo, rev, path],
+    queryFn: ({ signal }) =>
+      getJSON<Rendered>('render', { repo, ref: rev, path }, signal),
+    staleTime: staleFor(rev),
+    // 404 means the server lacks the endpoint and the view shows the source
+    retry: false,
+  })
+
+export function isMarkdownPath(path: string): boolean {
+  return /\.(md|markdown|mdown|mkd)$/i.test(path)
+}
 
 const LOG_PAGE = 50
 
