@@ -65,6 +65,40 @@ export type Histogram = {
   last: string | null
 }
 
+export type LineType = 'context' | 'add' | 'del'
+
+// 1-based
+export type DiffLine = {
+  type: LineType
+  old: number | null
+  new: number | null
+  text: string
+}
+
+export type Hunk = {
+  oldStart: number
+  oldLines: number
+  newStart: number
+  newLines: number
+  header: string
+  lines: DiffLine[]
+}
+
+export type FileStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'copied'
+
+export type FileDiff = {
+  path: string
+  oldPath: string
+  status: FileStatus
+  additions: number
+  deletions: number
+  binary: boolean
+  truncated?: boolean
+  hunks: Hunk[]
+}
+
+export type CommitDetail = { commit: Commit; files: FileDiff[] }
+
 // 1-based inclusive
 export type BlameRange = {
   start: number

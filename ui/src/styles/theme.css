@@ -235,6 +235,15 @@
     font-weight: var(--shiki-dark-font-weight, inherit);
   }
 
+  .word-add {
+    background-color: var(--add-word);
+    border-radius: 2px;
+  }
+  .word-del {
+    background-color: var(--del-word);
+    border-radius: 2px;
+  }
+
   kbd.key {
     display: inline-flex;
     min-width: 20px;

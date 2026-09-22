@@ -1,20 +1,36 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Code2, Copy, Link2, Pin, RotateCcwClock, ScanText } from 'lucide-react'
+import {
+  Code2,
+  Copy,
+  GitCommitHorizontal,
+  Link2,
+  Pin,
+  RotateCcwClock,
+  ScanText,
+} from 'lucide-react'
+import { useState } from 'react'
 import { resolveRef, useResolvedRef } from '@/api/queries'
+import { Badge } from '@/components/badge'
+import { Segmented } from '@/components/segmented'
 import { FileView } from '@/features/code/file-view'
 import { copyRepoLink } from '@/features/code/path-actions'
 import { TreeView } from '@/features/code/tree-view'
+import { CommitPage } from '@/features/commit/commit-page'
 import { CommitsView } from '@/features/commits/commits-view'
 import {
   AppShell,
   type Section,
   SidebarHeader,
 } from '@/features/shell/app-shell'
+import { SidebarSlot } from '@/features/shell/sidebar-slot'
 import { ErrorState } from '@/features/shell/states'
 import { copyText } from '@/lib/clipboard'
+import { cn } from '@/lib/cn'
 import { type Command, useCommands } from '@/lib/commands'
+import { shortHash } from '@/lib/format'
 import { useKeys } from '@/lib/keymap'
 import { type RepoLocation, type RepoView, repoLink } from '@/lib/url'
+import { usePersistedState } from '@/lib/use-persisted-state'
 import { RefSwitcher } from './ref-switcher'
 import { TreeFilter } from './tree-filter'
 
@@ -35,6 +51,11 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
   const hash = useLocation({ select: (l) => l.hash })
   const viewRef = hasRef(view) ? view.ref : undefined
   const { resolved, refs } = useResolvedRef(repo, viewRef)
+  const [slot, setSlot] = useState<HTMLDivElement | null>(null)
+  const [pane, setPane] = usePersistedState<'files' | 'changes'>(
+    'sidebar:diff-pane',
+    'changes',
+  )
 
   const linkRef = viewRef
   const name = repo.slice(repo.indexOf('/') + 1)
@@ -158,10 +179,15 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
       case 'commits':
         body = <CommitsView repo={repo} resolved={resolved} path={view.path} />
         break
+      case 'commit':
+        body = <CommitPage repo={repo} hash={view.hash} />
+        break
     }
   }
 
   const treeResolved = hasRef(view) ? resolved : resolveRef(refs.data)
+  const hasChanges = view.kind === 'commit'
+  const showFiles = !hasChanges || pane === 'files'
 
   const sidebar = (
     <>
@@ -181,22 +207,47 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
               resolved={resolved}
               refs={refs.data}
             />
+          ) : view.kind === 'commit' ? (
+            <Badge>
+              <GitCommitHorizontal aria-hidden />
+              {shortHash(view.hash)}
+            </Badge>
           ) : null}
         </div>
       </SidebarHeader>
-      {treeResolved && (
+      {hasChanges && (
+        <div className="shrink-0 px-2 pb-3">
+          <Segmented
+            fill
+            value={pane}
+            onChange={setPane}
+            options={[
+              { value: 'changes', label: 'Changes' },
+              { value: 'files', label: 'Files' },
+            ]}
+          />
+        </div>
+      )}
+      {showFiles && treeResolved && (
         <TreeFilter
           repo={repo}
           resolved={treeResolved}
           current={hasRef(view) ? view.path : ''}
         />
       )}
+      <div
+        ref={setSlot}
+        className={cn(
+          'flex min-h-0 flex-1 flex-col',
+          (!hasChanges || showFiles) && 'hidden',
+        )}
+      />
     </>
   )
 
   return (
     <AppShell section={section} sidebar={sidebar} repo={repo} linkRef={linkRef}>
-      {body}
+      <SidebarSlot.Provider value={slot}>{body}</SidebarSlot.Provider>
     </AppShell>
   )
 }

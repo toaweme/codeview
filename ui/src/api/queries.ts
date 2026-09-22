@@ -10,6 +10,7 @@ import type {
   Blame,
   Blob,
   Commit,
+  CommitDetail,
   FileList,
   Histogram,
   Log,
@@ -102,6 +103,14 @@ export const histogramQuery = (
         signal,
       ),
     staleTime: staleFor(rev),
+  })
+
+export const commitQuery = (repo: string, hash: string) =>
+  queryOptions({
+    queryKey: ['commit', repo, hash],
+    queryFn: ({ signal }) =>
+      getJSON<CommitDetail>('commit', { repo, hash }, signal),
+    staleTime: staleFor(hash),
   })
 
 export const revisionQuery = (repo: string, rev: string) =>
