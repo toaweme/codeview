@@ -19,7 +19,9 @@ export const Route = createFileRoute('/$org/$')({
 
 function RepoRoute() {
   const { org, _splat } = Route.useParams()
+  const { mode } = Route.useSearch()
   const loc = parseRepoPath(org, _splat)
   if (!loc) return <RepoList org={org} />
+  if (loc.view.kind === 'compare' && mode) loc.view.mode = mode
   return <RepoPage loc={loc} />
 }

@@ -4,13 +4,14 @@ import {
   queryOptions,
   useQuery,
 } from '@tanstack/react-query'
-import { isCommitHash, splitRevision } from '@/lib/url'
+import { type CompareMode, isCommitHash, splitRevision } from '@/lib/url'
 import { ApiError, getJSON, isNotFound, type Params } from './client'
 import type {
   Blame,
   Blob,
   Commit,
   CommitDetail,
+  Compare,
   FileList,
   Histogram,
   Log,
@@ -141,6 +142,23 @@ export const revisionQuery = (repo: string, rev: string) =>
     },
     staleTime: staleFor(splitRevision(rev).name),
     retry: false,
+  })
+
+export const compareQuery = (
+  repo: string,
+  base: string,
+  head: string,
+  mode?: CompareMode,
+) =>
+  queryOptions({
+    queryKey: ['compare', repo, base, head, mode ?? ''],
+    queryFn: ({ signal }) =>
+      getJSON<Compare>(
+        'compare',
+        mode ? { repo, base, head, mode } : { repo, base, head },
+        signal,
+      ),
+    staleTime: isCommitHash(base) && isCommitHash(head) ? IMMUTABLE : MUTABLE,
   })
 
 const CRAWL_LIMIT = 400

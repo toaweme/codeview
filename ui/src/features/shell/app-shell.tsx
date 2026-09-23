@@ -1,6 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Code2,
+  GitCompareArrows,
   Library,
   Moon,
   PanelLeft,
@@ -111,6 +112,13 @@ export function AppShell({
               link={repoLink(repo, { kind: 'commits', ref: linkRef, path: '' })}
             >
               <RotateCcwClock />
+            </RailLink>
+            <RailLink
+              label="Compare"
+              active={section === 'compare'}
+              link={repoLink(repo, { kind: 'compare', base: '', head: '' })}
+            >
+              <GitCompareArrows />
             </RailLink>
           </>
         )}

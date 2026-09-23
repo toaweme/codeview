@@ -3,6 +3,7 @@ import {
   Code2,
   Copy,
   GitCommitHorizontal,
+  GitCompareArrows,
   Link2,
   Pin,
   RotateCcwClock,
@@ -16,6 +17,7 @@ import { FileView } from '@/features/code/file-view'
 import { copyRepoLink } from '@/features/code/path-actions'
 import { TreeView } from '@/features/code/tree-view'
 import { CommitPage } from '@/features/commit/commit-page'
+import { ComparePage } from '@/features/commit/compare-page'
 import { CommitsView } from '@/features/commits/commits-view'
 import {
   AppShell,
@@ -116,6 +118,13 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
       icon: RotateCcwClock,
       run: goHistory,
     },
+    {
+      id: 'repo:compare',
+      label: 'Compare branches',
+      icon: GitCompareArrows,
+      run: () =>
+        navigate(repoLink(repo, { kind: 'compare', base: '', head: '' })),
+    },
   ]
   if (isFile) {
     commands.unshift({
@@ -182,11 +191,27 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
       case 'commit':
         body = <CommitPage repo={repo} hash={view.hash} />
         break
+      case 'compare':
+        body = (
+          <ComparePage
+            repo={repo}
+            base={view.base}
+            head={view.head}
+            mode={view.mode}
+          />
+        )
+        break
     }
   }
 
-  const treeResolved = hasRef(view) ? resolved : resolveRef(refs.data)
-  const hasChanges = view.kind === 'commit'
+  const treeResolved = hasRef(view)
+    ? resolved
+    : view.kind === 'compare' && view.head
+      ? resolveRef(refs.data, view.head)
+      : resolveRef(refs.data)
+  const hasChanges =
+    view.kind === 'commit' ||
+    (view.kind === 'compare' && !!view.base && !!view.head)
   const showFiles = !hasChanges || pane === 'files'
 
   const sidebar = (

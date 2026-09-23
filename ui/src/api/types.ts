@@ -101,6 +101,20 @@ export type FileDiff = {
 
 export type CommitDetail = { commit: Commit; files: FileDiff[] }
 
+export type Compare = {
+  base: string
+  head: string
+  mergeBase: string
+  // capped at 250
+  ahead: number
+  behind: number
+  diverged: boolean
+  // null when the histories never meet
+  boundary: Commit | null
+  commits: Commit[]
+  files: FileDiff[]
+}
+
 // 1-based inclusive
 export type BlameRange = {
   start: number
