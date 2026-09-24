@@ -1,0 +1,578 @@
+import { Link } from '@tanstack/react-router'
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronRight,
+  FolderGit2,
+  GitBranch,
+  Tag,
+  X,
+} from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ActivityBranch, ActivityCommit } from '@/api/types'
+import { Badge } from '@/components/badge'
+import { Combobox } from '@/components/combobox'
+import { Tooltip } from '@/components/tooltip'
+import { cn } from '@/lib/cn'
+import { shortHash } from '@/lib/format'
+import { usePressPreload } from '@/lib/preload'
+import { dayKey, formatDay, formatFull, relativeTime } from '@/lib/time'
+import { repoLink } from '@/lib/url'
+import { releaseLink, shortRepo } from './activity-links'
+import { aheadLabel, type BranchGroups, behindLabel } from './branch-groups'
+import type { overviewLink } from './overview-nav'
+import { isBotBranch, type Release, type ReleaseGroup } from './versions'
+
+const ROW = [
+  'group relative flex h-(--row-h) min-w-0 items-center gap-3',
+  'rounded-lg px-2.5 transition-colors duration-75 hover:bg-hover',
+].join(' ')
+const OVERLAY = [
+  'min-w-0 flex-1 outline-none',
+  "after:absolute after:inset-0 after:rounded-lg after:content-['']",
+  'focus-visible:after:outline-2 focus-visible:after:outline-ring',
+].join(' ')
+
+type PanelLink = ReturnType<typeof overviewLink> | ReturnType<typeof repoLink>
+
+export function Panel({
+  title,
+  more,
+  children,
+}: {
+  title: string
+  more?: { link: PanelLink; label: string }
+  children: React.ReactNode
+}) {
+  return (
+    <section className="min-w-0">
+      <div className="flex h-8 items-center gap-3 px-1 pb-1.5">
+        <h2 className="min-w-0 flex-1 truncate font-semibold text-base">
+          {title}
+        </h2>
+        {more && (
+          <Link
+            {...more.link}
+            className={cn(
+              'shrink-0 whitespace-nowrap rounded-md px-2 py-1',
+              'text-muted-foreground text-sm transition-colors duration-100',
+              'hover:bg-hover hover:text-foreground',
+              'focus-visible:outline-2 focus-visible:outline-ring',
+            )}
+          >
+            {more.label}
+          </Link>
+        )}
+      </div>
+      <div className="rounded-2xl bg-island-muted p-1.5">{children}</div>
+    </section>
+  )
+}
+
+export function PanelEmpty({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-2.5 py-6 text-center text-muted-foreground text-sm">
+      {children}
+    </p>
+  )
+}
+
+export function RowsSkeleton({ rows }: { rows: number }) {
+  return (
+    <div aria-hidden>
+      {Array.from({ length: rows }, (_, i) => (
+        <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder rows
+          key={i}
+          className="flex h-(--row-h) items-center gap-3 px-2.5"
+        >
+          <div className="h-3.5 w-16 animate-pulse rounded-md bg-muted" />
+          <div
+            className="h-3.5 animate-pulse rounded-md bg-muted"
+            style={{ width: `${35 + ((i * 29) % 40)}%` }}
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function RepoBadge({ repo, org }: { repo: string; org?: string }) {
+  return (
+    <Badge className="max-w-48 min-w-0">
+      <span className="truncate">{shortRepo(repo, org)}</span>
+    </Badge>
+  )
+}
+
+const clockFmt = new Intl.DateTimeFormat('en', {
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+function Clock({ iso }: { iso: string }) {
+  const t = Date.parse(iso)
+  return (
+    <span
+      className="num hidden shrink-0 text-faint text-sm sm:block"
+      title={formatFull(iso)}
+    >
+      {Number.isNaN(t) ? '' : clockFmt.format(t)}
+    </span>
+  )
+}
+
+function When({ iso }: { iso: string }) {
+  return (
+    <span
+      className="num hidden w-28 shrink-0 truncate text-right text-faint text-sm sm:block"
+      title={formatFull(iso)}
+    >
+      {relativeTime(iso)}
+    </span>
+  )
+}
+
+export function CommitFeed({
+  commits,
+  org,
+  sticky,
+  showRepo = true,
+}: {
+  commits: ActivityCommit[]
+  org?: string
+  sticky?: boolean
+  showRepo?: boolean
+}) {
+  const preload = usePressPreload()
+  const groups = useMemo(() => {
+    const out: { key: string; day: string; commits: ActivityCommit[] }[] = []
+    for (const c of commits) {
+      const k = dayKey(c.committedAt)
+      const last = out[out.length - 1]
+      if (last && last.key === k) last.commits.push(c)
+      else out.push({ key: k, day: formatDay(c.committedAt), commits: [c] })
+    }
+    return out
+  }, [commits])
+  return groups.map((g) => (
+    <section key={g.key}>
+      <h3
+        className={cn(
+          'flex h-9 items-end px-2.5 pb-1 font-medium text-faint text-sm',
+          sticky && 'sticky top-0 z-[2] rounded-lg bg-island-muted',
+        )}
+      >
+        {g.day}
+        <span className="num pl-2 font-normal">{g.commits.length}</span>
+      </h3>
+      <ul>
+        {g.commits.map((c) => {
+          const link = repoLink(c.repo, { kind: 'commit', hash: c.hash })
+          return (
+            <li key={`${c.repo}@${c.hash}`} className={ROW}>
+              {showRepo && <RepoBadge repo={c.repo} org={org} />}
+              <Link
+                {...link}
+                {...preload(link)}
+                className={cn(OVERLAY, 'truncate')}
+              >
+                {c.subject}
+              </Link>
+              <span className="hidden max-w-36 shrink-0 truncate text-muted-foreground text-sm md:block">
+                {c.author.name}
+              </span>
+              <Clock iso={c.committedAt} />
+              <Badge className="w-[4.75rem] justify-center">
+                {shortHash(c.hash)}
+              </Badge>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  ))
+}
+
+export function TagLabel({
+  release,
+  className,
+}: {
+  release: Pick<Release, 'prefix' | 'version' | 'isVersion'>
+  className?: string
+}) {
+  return (
+    <span className={cn('flex min-w-0 items-baseline', className)}>
+      {release.prefix && (
+        <span className="min-w-0 truncate text-faint">{release.prefix}/</span>
+      )}
+      <span
+        className={cn(
+          'font-medium text-foreground',
+          release.isVersion ? 'shrink-0' : 'min-w-0 truncate',
+        )}
+      >
+        {release.version}
+      </span>
+    </span>
+  )
+}
+
+export function ReleaseRow({
+  release: r,
+  org,
+  showRepo,
+}: {
+  release: Release
+  org?: string
+  showRepo: boolean
+}) {
+  const preload = usePressPreload()
+  const link = releaseLink(r)
+  const prev = r.previous
+    ? r.previous.slice(r.prefix ? r.prefix.length + 1 : 0)
+    : ''
+  return (
+    <li className={ROW}>
+      <Tag
+        className={cn(
+          'size-4 shrink-0',
+          r.isVersion ? 'text-info' : 'text-faint',
+        )}
+        aria-hidden
+      />
+      <Link
+        {...link}
+        {...preload(link)}
+        className={cn(OVERLAY, 'flex items-baseline gap-2 overflow-hidden')}
+      >
+        <TagLabel release={r} className="shrink" />
+        {prev && (
+          <span className="hidden min-w-0 shrink-[2] truncate text-faint text-sm md:block">
+            since {prev}
+          </span>
+        )}
+      </Link>
+      {showRepo && <RepoBadge repo={r.repo} org={org} />}
+      <When iso={r.taggedAt} />
+    </li>
+  )
+}
+
+export function BranchRow({
+  branch: b,
+  base,
+  org,
+  showRepo,
+  dim,
+}: {
+  branch: ActivityBranch
+  base?: string
+  org?: string
+  showRepo: boolean
+  dim?: boolean
+}) {
+  const preload = usePressPreload()
+  const link = base
+    ? repoLink(b.repo, { kind: 'compare', base, head: b.name })
+    : repoLink(b.repo, { kind: 'tree', ref: b.name, path: '' })
+  const quiet = dim || isBotBranch(b.name)
+  return (
+    <li className={cn(ROW, quiet && 'text-muted-foreground')}>
+      <GitBranch className="size-4 shrink-0 text-faint" aria-hidden />
+      <Link
+        {...link}
+        {...preload(link)}
+        className={cn(OVERLAY, 'flex items-baseline gap-3 overflow-hidden')}
+      >
+        <span
+          className={cn(
+            'max-w-[50%] shrink-0 truncate',
+            !quiet && 'font-medium text-foreground',
+          )}
+        >
+          {b.name}
+        </span>
+        <span className="min-w-0 truncate text-muted-foreground text-sm">
+          {b.subject}
+        </span>
+      </Link>
+      {showRepo && <RepoBadge repo={b.repo} org={org} />}
+      <span className="relative z-[1] flex shrink-0 gap-1">
+        <Tooltip label={aheadLabel(b.ahead, base)}>
+          <span className="flex">
+            <Badge tone={b.ahead > 0 && !dim ? 'add' : 'neutral'}>
+              <ArrowUp aria-hidden />
+              {b.ahead.toLocaleString()}
+              <span className="sr-only">{aheadLabel(b.ahead, base)}</span>
+            </Badge>
+          </span>
+        </Tooltip>
+        <Tooltip label={behindLabel(b.behind, base)}>
+          <span className="flex">
+            <Badge tone={b.behind > 0 && !dim ? 'warn' : 'neutral'}>
+              <ArrowDown aria-hidden />
+              {b.behind.toLocaleString()}
+              <span className="sr-only">{behindLabel(b.behind, base)}</span>
+            </Badge>
+          </span>
+        </Tooltip>
+      </span>
+      <When iso={b.updatedAt} />
+    </li>
+  )
+}
+
+function GroupTitle({ title, count }: { title: string; count: number }) {
+  return (
+    <h3 className="flex h-9 items-end px-2.5 pb-1 font-medium text-faint text-sm">
+      {title}
+      <span className="num pl-2 font-normal">{count}</span>
+    </h3>
+  )
+}
+
+export function BranchList({
+  groups: { people, bots, merged },
+  base,
+  org,
+  showRepo,
+}: {
+  groups: BranchGroups
+  base: (b: ActivityBranch) => string | undefined
+  org?: string
+  showRepo: boolean
+}) {
+  const [showMerged, setShowMerged] = useState(false)
+  const rows = (list: ActivityBranch[], dim = false) => (
+    <ul>
+      {list.map((b) => (
+        <BranchRow
+          key={`${b.repo}@${b.name}`}
+          branch={b}
+          base={base(b)}
+          org={org}
+          showRepo={showRepo}
+          dim={dim}
+        />
+      ))}
+    </ul>
+  )
+  return (
+    <>
+      {rows(people)}
+      {bots.length > 0 && (
+        <section>
+          <GroupTitle title="Bot branches" count={bots.length} />
+          {rows(bots)}
+        </section>
+      )}
+      {merged.length > 0 && (
+        <section>
+          <h3>
+            <button
+              type="button"
+              aria-expanded={showMerged}
+              onClick={() => setShowMerged((o) => !o)}
+              className={cn(
+                'flex h-9 w-full items-end gap-1 rounded-lg px-2.5 pb-1',
+                'font-medium text-faint text-sm transition-colors duration-100',
+                'hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring',
+              )}
+            >
+              <ChevronRight
+                className={cn(
+                  'size-4 shrink-0 self-center transition-transform duration-100',
+                  showMerged && 'rotate-90',
+                )}
+                aria-hidden
+              />
+              Merged
+              <span className="num pl-1 font-normal">{merged.length}</span>
+            </button>
+          </h3>
+          {showMerged && rows(merged, true)}
+        </section>
+      )}
+    </>
+  )
+}
+
+export function ReleaseList({
+  groups,
+  org,
+  showRepo,
+}: {
+  groups: ReleaseGroup[]
+  org?: string
+  showRepo: boolean
+}) {
+  return groups.map((g) => (
+    <section key={g.key}>
+      <h3
+        className={cn(
+          'sticky top-0 z-[2] flex h-9 items-end rounded-lg',
+          'bg-island-muted px-2.5 pb-1 font-medium text-faint text-sm',
+        )}
+      >
+        <span className="truncate">{g.title}</span>
+        <span className="num shrink-0 pl-2 font-normal">
+          {g.releases.length}
+        </span>
+      </h3>
+      <ul>
+        {g.releases.map((r) => (
+          <ReleaseRow
+            key={`${r.repo}@${r.name}`}
+            release={r}
+            org={org}
+            showRepo={showRepo}
+          />
+        ))}
+      </ul>
+    </section>
+  ))
+}
+
+const PILLS_UP_TO = 3
+
+export function RepoFilter({
+  repos,
+  org,
+  selected,
+  onChange,
+  counts,
+}: {
+  repos: string[]
+  org?: string
+  selected: readonly string[]
+  onChange: (next: string[]) => void
+  counts?: ReadonlyMap<string, number>
+}) {
+  const options = useMemo(() => {
+    const orgs = new Set(repos.map((r) => r.slice(0, r.indexOf('/'))))
+    const grouped = !org && orgs.size > 1
+    return repos
+      .toSorted((a, b) => a.localeCompare(b))
+      .map((r) => {
+        const n = counts?.get(r)
+        return {
+          value: r,
+          label: grouped ? r.slice(r.indexOf('/') + 1) : shortRepo(r, org),
+          group: grouped ? r.slice(0, r.indexOf('/')) : undefined,
+          keywords: [r],
+          detail: n === undefined ? undefined : n.toLocaleString(),
+        }
+      })
+  }, [repos, org, counts])
+  const picked = selected.filter((r) => repos.includes(r))
+  if (repos.length < 2) return null
+  return (
+    <>
+      <Combobox
+        multiple
+        icon={FolderGit2}
+        label="Repositories"
+        placeholder="Filter repositories"
+        all="All repositories"
+        count={(n) => `${n.toLocaleString()} repositories`}
+        value={picked}
+        onChange={onChange}
+        options={options}
+        empty="No repository matches."
+        className="w-52 min-w-32 shrink"
+      />
+      {picked.length > 0 && picked.length <= PILLS_UP_TO && (
+        <ul
+          aria-label="Picked repositories"
+          className="flex min-w-0 shrink-[2] gap-1.5 overflow-hidden"
+        >
+          {picked.map((r) => (
+            <li
+              key={r}
+              className={cn(
+                'flex h-7 min-w-0 shrink items-center gap-0.5 rounded-md',
+                'bg-primary/12 pr-0.5 pl-2.5 font-medium text-primary text-sm',
+              )}
+            >
+              <span className="min-w-0 truncate">{shortRepo(r, org)}</span>
+              <button
+                type="button"
+                aria-label={`Remove ${r}`}
+                onClick={() => onChange(picked.filter((x) => x !== r))}
+                className={cn(
+                  'grid size-6 shrink-0 place-items-center rounded-md',
+                  'transition-colors duration-100 hover:bg-primary/15',
+                  'focus-visible:outline-2 focus-visible:outline-ring',
+                )}
+              >
+                <X className="size-3.5" aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  )
+}
+
+export function FilterBar({
+  children,
+  count,
+}: {
+  children: React.ReactNode
+  count?: React.ReactNode
+}) {
+  return (
+    <div className="flex h-9 min-w-0 items-center gap-2">
+      {children}
+      {count !== undefined && (
+        <span className="num ml-auto shrink-0 whitespace-nowrap pl-2 text-faint text-sm">
+          {count}
+        </span>
+      )}
+    </div>
+  )
+}
+
+export function MoreSentinel({
+  onMore,
+  loading,
+  auto,
+}: {
+  onMore: () => void
+  loading: boolean
+  auto: boolean
+}) {
+  const ref = useRef<HTMLButtonElement>(null)
+  const more = useRef(onMore)
+  more.current = onMore
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !auto || loading) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) more.current()
+      },
+      { rootMargin: '400px 0px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [auto, loading])
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={onMore}
+      disabled={loading}
+      className={cn(
+        'flex h-(--row-h) w-full items-center justify-center rounded-lg',
+        'text-muted-foreground text-sm transition-colors duration-75',
+        'hover:bg-hover hover:text-foreground',
+        'disabled:cursor-default disabled:hover:bg-transparent',
+      )}
+    >
+      {loading ? 'Loading' : 'Load more'}
+    </button>
+  )
+}

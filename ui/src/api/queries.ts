@@ -7,6 +7,7 @@ import {
 import { type CompareMode, isCommitHash, splitRevision } from '@/lib/url'
 import { ApiError, getJSON, isNotFound, type Params } from './client'
 import type {
+  Activity,
   Blame,
   Blob,
   Commit,
@@ -33,6 +34,13 @@ export const reposQuery = () =>
   queryOptions({
     queryKey: ['repos'],
     queryFn: ({ signal }) => getJSON<RepoList>('repos', {}, signal),
+    staleTime: 60_000,
+  })
+
+export const activityQuery = (org?: string) =>
+  queryOptions({
+    queryKey: ['activity', org ?? ''],
+    queryFn: ({ signal }) => getJSON<Activity>('activity', { org }, signal),
     staleTime: 60_000,
   })
 

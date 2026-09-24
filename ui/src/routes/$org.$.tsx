@@ -1,8 +1,9 @@
 import { noop } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { reposQuery } from '@/api/queries'
+import { activityQuery, reposQuery } from '@/api/queries'
 import { parseHistoryFilter } from '@/features/commits/filters'
 import { RepoPage } from '@/features/repo/repo-page'
+import { parseOverviewSearch } from '@/features/repos/overview-nav'
 import { RepoList } from '@/features/repos/repo-list'
 import { parseRepoPath, parseRepoSearch } from '@/lib/url'
 
@@ -10,9 +11,11 @@ export const Route = createFileRoute('/$org/$')({
   validateSearch: (search: Record<string, unknown>) => ({
     ...parseRepoSearch(search),
     ...parseHistoryFilter(search),
+    ...parseOverviewSearch(search),
   }),
-  loader: ({ context: { queryClient: qc } }) => {
+  loader: ({ context: { queryClient: qc }, params }) => {
     void qc.query(reposQuery()).catch(noop)
+    void qc.query(activityQuery(params.org)).catch(noop)
   },
   component: RepoRoute,
 })

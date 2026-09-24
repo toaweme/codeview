@@ -15,6 +15,33 @@ export type Repo = {
 
 export type RepoList = { repos: Repo[] }
 
+export type ActivityCommit = {
+  repo: string
+  hash: string
+  subject: string
+  author: Signature
+  committedAt: string
+  ref: string
+}
+
+export type ActivityTag = Tag & { repo: string; previous: string }
+
+export type ActivityBranch = {
+  repo: string
+  name: string
+  commit: string
+  subject: string
+  updatedAt: string
+  ahead: number
+  behind: number
+}
+
+export type Activity = {
+  commits: ActivityCommit[]
+  tags: ActivityTag[]
+  branches: ActivityBranch[]
+}
+
 export type Ref = { name: string; commit: string; updatedAt: string }
 
 export type Refs = { default: string; branches: Ref[]; tags: Ref[] }
