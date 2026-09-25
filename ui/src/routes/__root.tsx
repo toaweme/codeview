@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { createRootRouteWithContext, Outlet } from '@tanstack/react-router'
+import { KeyboardHelp } from '@/features/shell/keyboard-help'
 import { Progress } from '@/features/shell/progress'
 import { ErrorState } from '@/features/shell/states'
 
@@ -17,6 +18,7 @@ function Root() {
     <>
       <Progress />
       <Outlet />
+      <KeyboardHelp />
     </>
   )
 }

@@ -2,6 +2,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Code2,
   GitCompareArrows,
+  Keyboard,
   Library,
   Moon,
   PanelLeft,
@@ -14,7 +15,7 @@ import type { Refs } from '@/api/types'
 import { WithShortcut } from '@/components/shortcut'
 import { Tooltip } from '@/components/tooltip'
 import { cn } from '@/lib/cn'
-import { openPalette, useCommands } from '@/lib/commands'
+import { openKeyboardHelp, openPalette, useCommands } from '@/lib/commands'
 import { type KeyId, useKeys } from '@/lib/keymap'
 import { useTheme } from '@/lib/theme-context'
 import { repoLink } from '@/lib/url'
@@ -76,6 +77,13 @@ export function AppShell({
       label: 'Toggle light and dark theme',
       icon: Sun,
       run: toggleTheme,
+    },
+    {
+      id: 'shell:shortcuts',
+      label: 'Show keyboard shortcuts',
+      icon: Keyboard,
+      shortcut: 'help.open',
+      run: openKeyboardHelp,
     },
   ])
 
@@ -152,6 +160,13 @@ export function AppShell({
         <RailButton label="Toggle theme" onClick={toggleTheme}>
           <Sun className="hidden dark:block" />
           <Moon className="block dark:hidden" />
+        </RailButton>
+        <RailButton
+          label="Keyboard shortcuts"
+          shortcut="help.open"
+          onClick={openKeyboardHelp}
+        >
+          <Keyboard />
         </RailButton>
       </nav>
       {open && (
