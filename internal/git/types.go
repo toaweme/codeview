@@ -74,8 +74,10 @@ type Tag struct {
 	TaggedAt time.Time `json:"taggedAt"`
 }
 
+// ActivityQuery narrows activity to an org, or to one repository when Repo is set.
 type ActivityQuery struct {
 	Org   string
+	Repo  string
 	Limit int
 }
 

@@ -7,9 +7,12 @@ import {
   RotateCcwClock,
   Tag,
 } from 'lucide-react'
+import { useMemo } from 'react'
 import {
   logQuery,
   type ResolvedRef,
+  refsQuery,
+  repoActivityQuery,
   reposQuery,
   treeQuery,
 } from '@/api/queries'
@@ -17,6 +20,13 @@ import type { Tree } from '@/api/types'
 import { Badge } from '@/components/badge'
 import { Markdown } from '@/components/markdown'
 import { Shortcut } from '@/components/shortcut'
+import {
+  BranchRow,
+  Panel,
+  ReleaseRow,
+  RowsSkeleton,
+} from '@/features/repos/activity-panels'
+import { buildReleases } from '@/features/repos/versions'
 import { ErrorState, Skeleton } from '@/features/shell/states'
 import { MoreMenu } from '@/features/shell/top-line'
 import { cn } from '@/lib/cn'
@@ -54,7 +64,12 @@ export function TreeView({
       </PathBar>
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="mx-auto w-full max-w-[860px] px-6 pt-4 pb-16">
-          {!path && resolved && <RepoSummary repo={repo} resolved={resolved} />}
+          {!path && resolved && (
+            <>
+              <RepoSummary repo={repo} resolved={resolved} />
+              <RepoRefs repo={repo} />
+            </>
+          )}
           {!resolved || tree.isPending ? (
             <Skeleton lines={12} className="px-0" />
           ) : tree.isError ? (
@@ -146,6 +161,7 @@ function RepoSummary({
   resolved: ResolvedRef
 }) {
   const repos = useQuery(reposQuery())
+  const refs = useQuery(refsQuery(repo))
   const log = useInfiniteQuery(logQuery(repo, resolved.rev, ''))
   const info = repos.data?.repos.find((r) => r.name === repo)
   const last = log.data?.pages[0]?.commits[0]
@@ -172,6 +188,18 @@ function RepoSummary({
             : resolved.name}
         </Badge>
         {resolved.isDefault && <Badge>default branch</Badge>}
+        {refs.data && (
+          <>
+            <BadgeLink repo={repo} kind="branches">
+              {refs.data.branches.length}{' '}
+              {refs.data.branches.length === 1 ? 'branch' : 'branches'}
+            </BadgeLink>
+            <BadgeLink repo={repo} kind="releases">
+              {refs.data.tags.length}{' '}
+              {refs.data.tags.length === 1 ? 'tag' : 'tags'}
+            </BadgeLink>
+          </>
+        )}
       </div>
       {last && (
         <div className="mt-4 flex items-center gap-3 rounded-lg bg-background py-2 pr-2 pl-3.5">
@@ -207,5 +235,89 @@ function RepoSummary({
         </div>
       )}
     </section>
+  )
+}
+
+function BadgeLink({
+  repo,
+  kind,
+  children,
+}: {
+  repo: string
+  kind: 'branches' | 'releases'
+  children: React.ReactNode
+}) {
+  return (
+    <Link
+      {...repoLink(repo, { kind })}
+      className="group rounded-md focus-visible:outline-2 focus-visible:outline-ring"
+    >
+      <Badge className="transition-colors duration-100 group-hover:bg-primary/12 group-hover:text-primary">
+        {children}
+      </Badge>
+    </Link>
+  )
+}
+
+const RECENT_BRANCHES = 5
+
+function RepoRefs({ repo }: { repo: string }) {
+  const refs = useQuery(refsQuery(repo))
+  const hasBranches = !!refs.data && refs.data.branches.length > 1
+  const activity = useQuery({
+    ...repoActivityQuery(repo),
+    enabled: hasBranches,
+  })
+  const release = useMemo(
+    () =>
+      refs.data
+        ? buildReleases(repo, refs.data.tags).find((r) => r.isVersion)
+        : undefined,
+    [refs.data, repo],
+  )
+  if (!refs.data || (!release && !hasBranches)) return null
+  const branches = activity.data?.branches.slice(0, RECENT_BRANCHES) ?? []
+  return (
+    <div className="mb-8 flex flex-col gap-6">
+      {release && (
+        <Panel
+          title="Latest release"
+          more={{
+            link: repoLink(repo, { kind: 'releases' }),
+            label: 'View all',
+          }}
+        >
+          <ul>
+            <ReleaseRow release={release} showRepo={false} />
+          </ul>
+        </Panel>
+      )}
+      {hasBranches && (
+        <Panel
+          title="Recent branches"
+          more={{
+            link: repoLink(repo, { kind: 'branches' }),
+            label: 'View all',
+          }}
+        >
+          {activity.isPending ? (
+            <RowsSkeleton rows={3} />
+          ) : activity.isError ? (
+            <ErrorState error={activity.error} />
+          ) : (
+            <ul>
+              {branches.map((b) => (
+                <BranchRow
+                  key={b.name}
+                  branch={b}
+                  base={refs.data.default}
+                  showRepo={false}
+                />
+              ))}
+            </ul>
+          )}
+        </Panel>
+      )}
+    </div>
   )
 }

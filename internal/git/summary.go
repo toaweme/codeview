@@ -40,10 +40,12 @@ func (s *CLIStore) Activity(ctx context.Context, q ActivityQuery) (Activity, err
 	if err != nil {
 		return Activity{}, err
 	}
-	if org := strings.Trim(q.Org, "/"); org != "" {
+	org := strings.Trim(q.Org, "/")
+	repo := strings.Trim(q.Repo, "/")
+	if org != "" || repo != "" {
 		kept := names[:0:0]
 		for _, name := range names {
-			if strings.HasPrefix(name, org+"/") {
+			if (org == "" || strings.HasPrefix(name, org+"/")) && (repo == "" || name == repo) {
 				kept = append(kept, name)
 			}
 		}

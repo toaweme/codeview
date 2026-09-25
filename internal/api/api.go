@@ -142,7 +142,11 @@ func (h *Handler) repos(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) activity(w http.ResponseWriter, r *http.Request) {
-	q := git.ActivityQuery{Org: r.URL.Query().Get("org"), Limit: git.DefaultActivityLimit}
+	q := git.ActivityQuery{
+		Org:   r.URL.Query().Get("org"),
+		Repo:  r.URL.Query().Get("repo"),
+		Limit: git.DefaultActivityLimit,
+	}
 	if v := r.URL.Query().Get("limit"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n <= 0 {

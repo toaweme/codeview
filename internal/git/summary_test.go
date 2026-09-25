@@ -111,6 +111,20 @@ func Test_CLIStore_Activity(t *testing.T) {
 			branches: []git.ActivityBranch{featureX},
 		},
 		{
+			name:     "one repo",
+			q:        git.ActivityQuery{Repo: f.Name, Limit: 1},
+			commits:  []string{f.Third},
+			tags:     []git.ActivityTag{light},
+			branches: []git.ActivityBranch{featureX},
+		},
+		{
+			name:     "other repo",
+			q:        git.ActivityQuery{Repo: "acme/missing"},
+			commits:  []string{},
+			tags:     []git.ActivityTag{},
+			branches: []git.ActivityBranch{},
+		},
+		{
 			name:     "other org",
 			q:        git.ActivityQuery{Org: "other"},
 			commits:  []string{},

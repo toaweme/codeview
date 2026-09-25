@@ -44,6 +44,15 @@ export const activityQuery = (org?: string) =>
     staleTime: 60_000,
   })
 
+// a repository keeps at most 50 branches in its activity summary
+export const repoActivityQuery = (repo: string) =>
+  queryOptions({
+    queryKey: ['activity', 'repo', repo],
+    queryFn: ({ signal }) =>
+      getJSON<Activity>('activity', { repo, limit: 50 }, signal),
+    staleTime: 60_000,
+  })
+
 export const refsQuery = (repo: string) =>
   queryOptions({
     queryKey: ['refs', repo],

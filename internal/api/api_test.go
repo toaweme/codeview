@@ -65,6 +65,7 @@ func Test_API_Status(t *testing.T) {
 		{"repos", "/api/repos", nil, 200},
 		{"activity", "/api/activity", nil, 200},
 		{"activity org", "/api/activity", params{"org": "acme", "limit": "5"}, 200},
+		{"activity repo", "/api/activity", params{"repo": f.Name}, 200},
 		{"activity bad limit", "/api/activity", params{"limit": "x"}, 400},
 		{"activity zero limit", "/api/activity", params{"limit": "0"}, 400},
 		{"refs", "/api/refs", params{"repo": f.Name}, 200},

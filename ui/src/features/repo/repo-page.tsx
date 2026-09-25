@@ -2,12 +2,14 @@ import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import {
   Code2,
   Copy,
+  GitBranch,
   GitCommitHorizontal,
   GitCompareArrows,
   Link2,
   Pin,
   RotateCcwClock,
   ScanText,
+  Tag,
 } from 'lucide-react'
 import { useState } from 'react'
 import { resolveRef, useResolvedRef } from '@/api/queries'
@@ -34,6 +36,7 @@ import { useKeys } from '@/lib/keymap'
 import { type RepoLocation, type RepoView, repoLink } from '@/lib/url'
 import { usePersistedState } from '@/lib/use-persisted-state'
 import { RefSwitcher } from './ref-switcher'
+import { BranchesView, ReleasesView } from './refs-views'
 import { TreeFilter } from './tree-filter'
 
 function hasRef(
@@ -119,6 +122,18 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
       run: goHistory,
     },
     {
+      id: 'repo:branches',
+      label: 'Go to branches',
+      icon: GitBranch,
+      run: () => navigate(repoLink(repo, { kind: 'branches' })),
+    },
+    {
+      id: 'repo:releases',
+      label: 'Go to releases',
+      icon: Tag,
+      run: () => navigate(repoLink(repo, { kind: 'releases' })),
+    },
+    {
       id: 'repo:compare',
       label: 'Compare branches',
       icon: GitCompareArrows,
@@ -191,6 +206,12 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
       case 'commit':
         body = <CommitPage repo={repo} hash={view.hash} />
         break
+      case 'branches':
+        body = <BranchesView repo={repo} />
+        break
+      case 'releases':
+        body = <ReleasesView repo={repo} />
+        break
       case 'compare':
         body = (
           <ComparePage
@@ -236,6 +257,16 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
             <Badge>
               <GitCommitHorizontal aria-hidden />
               {shortHash(view.hash)}
+            </Badge>
+          ) : view.kind === 'branches' ? (
+            <Badge>
+              <GitBranch aria-hidden />
+              branches
+            </Badge>
+          ) : view.kind === 'releases' ? (
+            <Badge>
+              <Tag aria-hidden />
+              releases
             </Badge>
           ) : null}
         </div>
