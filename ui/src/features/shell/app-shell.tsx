@@ -6,16 +6,20 @@ import {
   Moon,
   PanelLeft,
   RotateCcwClock,
+  Search,
   Sun,
 } from 'lucide-react'
+import type { ResolvedRef } from '@/api/queries'
+import type { Refs } from '@/api/types'
 import { WithShortcut } from '@/components/shortcut'
 import { Tooltip } from '@/components/tooltip'
 import { cn } from '@/lib/cn'
-import { useCommands } from '@/lib/commands'
+import { openPalette, useCommands } from '@/lib/commands'
 import { type KeyId, useKeys } from '@/lib/keymap'
 import { useTheme } from '@/lib/theme-context'
 import { repoLink } from '@/lib/url'
 import { usePersistedState } from '@/lib/use-persisted-state'
+import { CommandPalette } from './command-palette'
 import type { LinkTarget } from './top-line'
 
 export type Section = 'repos' | 'code' | 'history' | 'compare'
@@ -30,12 +34,18 @@ export function AppShell({
   children,
   repo,
   linkRef,
+  resolved,
+  refs,
+  onRef,
 }: {
   section: Section
   sidebar: React.ReactNode
   children: React.ReactNode
   repo?: string
   linkRef?: string
+  resolved?: ResolvedRef | null
+  refs?: Refs
+  onRef?: (name: string) => void
 }) {
   const [open, setOpen] = usePersistedState('sidebar:open', true)
   const [width, setWidth] = usePersistedState('sidebar:width', DEFAULT_W)
@@ -43,6 +53,8 @@ export function AppShell({
   const navigate = useNavigate()
 
   useKeys({
+    'palette.files': () => openPalette(),
+    'palette.actions': () => openPalette('>'),
     'sidebar.toggle': () => setOpen((o) => !o),
   })
   useCommands([
@@ -97,6 +109,13 @@ export function AppShell({
         >
           <Library />
         </RailLink>
+        <RailButton
+          label="Go to file"
+          shortcut="palette.files"
+          onClick={() => openPalette()}
+        >
+          <Search />
+        </RailButton>
         {repo && (
           <>
             <RailLink
@@ -154,6 +173,12 @@ export function AppShell({
       <main className="island relative flex min-w-0 flex-1 flex-col overflow-hidden">
         {children}
       </main>
+      <CommandPalette
+        repo={repo}
+        resolved={resolved ?? undefined}
+        refs={refs}
+        onRef={onRef}
+      />
     </div>
   )
 }

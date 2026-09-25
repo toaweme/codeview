@@ -98,6 +98,15 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
       resetScroll: false,
     })
   }
+  const switchRef = (ref: string) => {
+    const r = refs.data && ref === refs.data.default ? undefined : ref
+    navigate(
+      repoLink(
+        repo,
+        hasRef(view) ? { ...view, ref: r } : { kind: 'tree', ref: r, path: '' },
+      ),
+    )
+  }
 
   const copyPath =
     (view.kind === 'blob' || view.kind === 'blame' || view.kind === 'tree') &&
@@ -302,7 +311,15 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
   )
 
   return (
-    <AppShell section={section} sidebar={sidebar} repo={repo} linkRef={linkRef}>
+    <AppShell
+      section={section}
+      sidebar={sidebar}
+      repo={repo}
+      linkRef={linkRef}
+      resolved={resolved}
+      refs={refs.data}
+      onRef={switchRef}
+    >
       <SidebarSlot.Provider value={slot}>{body}</SidebarSlot.Provider>
     </AppShell>
   )
