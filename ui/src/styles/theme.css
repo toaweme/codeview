@@ -289,7 +289,7 @@
   .markdown > :last-child {
     margin-bottom: 0;
   }
-  .markdown :where(p, ul, ol, blockquote, pre, table, dl, details) {
+  .markdown :where(p, ul, ol, blockquote, pre, table, dl, details, .code-block) {
     margin: 0 0 16px;
   }
   .markdown :where(h1, h2, h3, h4, h5, h6) {
@@ -394,6 +394,28 @@
   }
   .markdown pre code {
     font-family: inherit;
+  }
+  .markdown .code-block {
+    position: relative;
+  }
+  .markdown .code-block > pre {
+    margin: 0;
+  }
+  .markdown .code-copy {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    opacity: 0;
+    transition: opacity 150ms;
+  }
+  .markdown .code-block:hover .code-copy,
+  .markdown .code-copy:focus-within {
+    opacity: 1;
+  }
+  @media (hover: none) {
+    .markdown .code-copy {
+      opacity: 1;
+    }
   }
   .markdown table {
     display: block;

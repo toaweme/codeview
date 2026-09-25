@@ -1,10 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate } from '@tanstack/react-router'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { treeQuery } from '@/api/queries'
 import { getHighlight, type Highlight, type Tok } from '@/highlight'
 import { cn } from '@/lib/cn'
 import { repoLink } from '@/lib/url'
+import { CopyButton } from './copy-button'
 
 export function Markdown({
   source,
@@ -26,6 +28,33 @@ export function Markdown({
   const navigate = useNavigate()
   const qc = useQueryClient()
   const hash = useLocation({ select: (l) => l.hash })
+  const [blocks, setBlocks] = useState<{ host: HTMLElement; text: string }[]>(
+    [],
+  )
+
+  useEffect(() => {
+    const root = ref.current
+    if (!root || !html) {
+      setBlocks([])
+      return
+    }
+    const found: { host: HTMLElement; text: string }[] = []
+    for (const pre of root.querySelectorAll('pre')) {
+      let host = pre.nextElementSibling as HTMLElement | null
+      if (!pre.parentElement?.classList.contains('code-block') || !host) {
+        const wrap = document.createElement('div')
+        wrap.className = 'code-block'
+        host = document.createElement('div')
+        host.className = 'code-copy'
+        pre.replaceWith(wrap)
+        wrap.append(pre, host)
+      }
+      const text = (pre.querySelector('code') ?? pre).textContent ?? ''
+      found.push({ host, text: text.replace(/\n$/, '') })
+    }
+    setBlocks(found)
+  }, [html])
+
   useEffect(() => {
     const root = ref.current
     if (!root || !html) return
@@ -128,6 +157,18 @@ export function Markdown({
         // biome-ignore lint/security/noDangerouslySetInnerHtml: the server sanitizes rendered Markdown, this is its one injection point
         dangerouslySetInnerHTML={{ __html: html }}
       />
+      {blocks.map((b, i) =>
+        createPortal(
+          <CopyButton
+            text={b.text}
+            title="Copy code"
+            what="Code"
+            className="bg-island-muted"
+          />,
+          b.host,
+          `${i}`,
+        ),
+      )}
     </>
   )
 }
