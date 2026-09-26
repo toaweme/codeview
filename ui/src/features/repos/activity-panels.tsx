@@ -375,20 +375,22 @@ export function BranchList({
               aria-expanded={showMerged}
               onClick={() => setShowMerged((o) => !o)}
               className={cn(
-                'flex h-9 w-full items-end gap-1 rounded-lg px-2.5 pb-1',
+                'flex h-9 w-full items-end rounded-lg px-2.5 pb-1',
                 'font-medium text-faint text-sm transition-colors duration-100',
                 'hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring',
               )}
             >
-              <ChevronRight
-                className={cn(
-                  'size-4 shrink-0 self-center transition-transform duration-100',
-                  showMerged && 'rotate-90',
-                )}
-                aria-hidden
-              />
-              Merged
-              <span className="num pl-1 font-normal">{merged.length}</span>
+              <span className="flex items-center gap-1 leading-5">
+                <ChevronRight
+                  className={cn(
+                    'size-4 shrink-0 transition-transform duration-100',
+                    showMerged && 'rotate-90',
+                  )}
+                  aria-hidden
+                />
+                Merged
+                <span className="num pl-1 font-normal">{merged.length}</span>
+              </span>
             </button>
           </h3>
           {showMerged && rows(merged, true)}

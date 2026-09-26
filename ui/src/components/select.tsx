@@ -19,6 +19,7 @@ export function Select<T extends string>({
   onClear,
   align = 'start',
   className,
+  trigger,
 }: {
   value?: T
   onChange: (value: T) => void
@@ -29,6 +30,8 @@ export function Select<T extends string>({
   onClear?: () => void
   align?: 'start' | 'center' | 'end'
   className?: string
+  // trigger replaces the field look of the button, keeping its behavior
+  trigger?: string
 }) {
   const listId = useId()
   const [open, setOpen] = useState(false)
@@ -76,7 +79,9 @@ export function Select<T extends string>({
 
   return (
     <Popover.Root open={open} onOpenChange={show}>
-      <div className={cn('relative flex h-9 min-w-0', className)}>
+      <div
+        className={cn('relative flex min-w-0', !trigger && 'h-9', className)}
+      >
         <Popover.Trigger asChild>
           <button
             type="button"
@@ -86,10 +91,10 @@ export function Select<T extends string>({
             aria-controls={listId}
             aria-haspopup="listbox"
             className={cn(
-              'flex h-9 w-full min-w-0 items-center gap-2 whitespace-nowrap rounded-lg',
-              'bg-island-muted px-3 text-left transition-colors duration-100',
-              'hover:bg-hover focus-visible:outline-2 focus-visible:outline-ring',
-              'data-[state=open]:bg-accent',
+              'flex w-full min-w-0 items-center gap-2 whitespace-nowrap text-left',
+              'transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-ring',
+              trigger ??
+                'h-9 rounded-lg bg-island-muted px-3 hover:bg-hover data-[state=open]:bg-accent',
               onClear && 'pr-14',
             )}
           >
@@ -105,7 +110,7 @@ export function Select<T extends string>({
             <span
               className={cn(
                 'min-w-0 flex-1 truncate',
-                current ? 'text-foreground' : 'text-faint',
+                !trigger && (current ? 'text-foreground' : 'text-faint'),
               )}
             >
               {current?.label ?? placeholder}

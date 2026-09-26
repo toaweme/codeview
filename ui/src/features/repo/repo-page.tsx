@@ -16,7 +16,7 @@ import { resolveRef, useResolvedRef } from '@/api/queries'
 import { Badge } from '@/components/badge'
 import { Segmented } from '@/components/segmented'
 import { FileView } from '@/features/code/file-view'
-import { copyRepoLink } from '@/features/code/path-actions'
+import { copyPageLink } from '@/features/code/path-actions'
 import { TreeView } from '@/features/code/tree-view'
 import { CommitPage } from '@/features/commit/commit-page'
 import { ComparePage } from '@/features/commit/compare-page'
@@ -113,9 +113,7 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
     view.path
       ? () => void copyText(view.path, 'Path')
       : undefined
-  const copyLink = () => copyRepoLink(repo, view, resolved?.commit)
-
-  useKeys({ 'repo.copyPermalink': copyLink })
+  useKeys({ 'repo.copyLink': copyPageLink })
 
   const commands: Command[] = [
     {
@@ -167,11 +165,11 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
     })
   }
   commands.push({
-    id: 'repo:permalink',
-    label: hasRef(view) ? 'Copy permalink' : 'Copy link',
+    id: 'repo:copy-link',
+    label: 'Copy link',
     icon: Link2,
-    shortcut: 'repo.copyPermalink',
-    run: copyLink,
+    shortcut: 'repo.copyLink',
+    run: copyPageLink,
   })
   if (copyPath) {
     commands.push({

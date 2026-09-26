@@ -7,6 +7,7 @@ import { Shortcut } from '@/components/shortcut'
 import { Tooltip } from '@/components/tooltip'
 import { cn } from '@/lib/cn'
 import type { KeyId } from '@/lib/keymap'
+import { type CrumbMenu, CrumbSwitch } from './crumb-switch'
 
 export type LinkTarget =
   | { to: '/' }
@@ -15,6 +16,8 @@ export type LinkTarget =
 export type Crumb = {
   label: React.ReactNode
   link?: LinkTarget
+  // menu turns the crumb into a switcher between its siblings
+  menu?: CrumbMenu
   key: string
 }
 
@@ -45,7 +48,16 @@ export function TopLine({
                   /
                 </span>
               )}
-              {c.link && !last ? (
+              {c.menu ? (
+                <CrumbSwitch
+                  menu={c.menu}
+                  className={grow}
+                  trigger={cn(
+                    'gap-1 rounded-md px-2 py-1 hover:bg-hover hover:text-foreground data-[state=open]:bg-hover',
+                    last ? 'font-semibold' : 'text-muted-foreground',
+                  )}
+                />
+              ) : c.link && !last ? (
                 <Link
                   {...c.link}
                   title={typeof c.label === 'string' ? c.label : undefined}

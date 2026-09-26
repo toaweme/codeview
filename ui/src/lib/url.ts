@@ -143,20 +143,6 @@ export function repoHref(repo: string, view: RepoView): string {
     : path
 }
 
-// repoPermalink swaps the ref in href for commit on views that carry one,
-// keeping the query and line hash, and returns href unchanged otherwise.
-export function repoPermalink(
-  href: string,
-  repo: string,
-  view: RepoView,
-  commit?: string,
-): string {
-  if (!commit || !('path' in view)) return href
-  const u = new URL(href)
-  u.pathname = repoHref(repo, { ...view, ref: commit })
-  return u.toString()
-}
-
 export type Selection = { start: number; end: number }
 
 export function parseLineHash(hash: string): Selection | null {

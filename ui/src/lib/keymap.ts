@@ -30,7 +30,7 @@ export const KEYMAP = {
   'palette.actions': {
     label: 'Show all actions',
     context: 'global',
-    ...both('mod+shift+p', 'mod+k'),
+    ...both('mod+k'),
     typing: true,
   },
   'sidebar.toggle': {
@@ -41,7 +41,7 @@ export const KEYMAP = {
   'help.open': {
     label: 'Show keyboard shortcuts',
     context: 'global',
-    ...both('mod+/', '?'),
+    ...both('?'),
     typing: true,
   },
   'overlay.close': {
@@ -50,7 +50,7 @@ export const KEYMAP = {
     ...both('Escape'),
     native: true,
   },
-  'repo.copyPermalink': {
+  'repo.copyLink': {
     label: 'Copy link to this page',
     context: 'repo',
     ...both('alt+shift+l'),

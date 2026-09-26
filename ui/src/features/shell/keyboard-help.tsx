@@ -154,7 +154,7 @@ function Rows({ ids }: { ids: KeyId[] }) {
           className="flex min-h-9 items-center justify-between gap-3 text-muted-foreground"
         >
           <span className="min-w-0">{KEYMAP[id].label}</span>
-          <Shortcut id={id} all />
+          <Shortcut id={id} />
         </li>
       ))}
     </ul>

@@ -101,9 +101,9 @@ export function BranchesView({ repo }: { repo: string }) {
           className="w-56 min-w-36 shrink"
         />
       </FilterBar>
-      <p className="px-1 text-faint text-sm">
-        ↑ commits not in {base ?? 'the default branch'} · ↓ commits the branch
-        is missing
+      <p className="flex flex-wrap gap-x-5 gap-y-1 px-1 text-faint text-sm">
+        <span>↑ commits not in {base ?? 'the default branch'}</span>
+        <span>↓ commits the branch is missing</span>
       </p>
       <div className="rounded-2xl bg-island-muted p-1.5">
         {q.isPending ? (

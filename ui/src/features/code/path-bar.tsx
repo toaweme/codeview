@@ -23,7 +23,7 @@ export function PathBar({
   const parts = path.split('/').filter(Boolean)
   const ref = resolved && !resolved.isDefault ? resolved.name : undefined
   const crumbs: Crumb[] = [
-    ...repoCrumbs(repo, ref),
+    ...repoCrumbs(repo),
     ...parts.map((p, i) => {
       const sub = parts.slice(0, i + 1).join('/')
       return {

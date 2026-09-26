@@ -21,29 +21,10 @@ export function Keys({
   )
 }
 
-export function Shortcut({
-  id,
-  all = false,
-  className,
-}: {
-  id: KeyId
-  all?: boolean
-  className?: string
-}) {
-  const chords = chordsOf(id)
-  const shown = all ? chords : chords.slice(0, 1)
-  return (
-    <span
-      className={cn('inline-flex shrink-0 items-center gap-1.5', className)}
-    >
-      {shown.map((keys, i) => (
-        <span key={keys.join('+')} className="inline-flex items-center gap-1.5">
-          {i > 0 && <span className="text-faint text-xs">or</span>}
-          <Keys keys={keys} />
-        </span>
-      ))}
-    </span>
-  )
+export function Shortcut({ id, className }: { id: KeyId; className?: string }) {
+  const [keys] = chordsOf(id)
+  if (!keys) return null
+  return <Keys keys={keys} className={className} />
 }
 
 export function WithShortcut({

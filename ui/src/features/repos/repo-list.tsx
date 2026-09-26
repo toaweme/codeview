@@ -51,7 +51,9 @@ export function RepoList({ org }: { org?: string }) {
           org
             ? { key: 'all', label: 'Repositories', link: { to: '/' } }
             : { key: 'all', label: 'Repositories' },
-          ...(org ? [{ key: 'org', label: org }] : []),
+          ...(org
+            ? [{ key: 'org', label: org, menu: { kind: 'org', org } as const }]
+            : []),
         ]}
       >
         <Segmented

@@ -1,38 +1,37 @@
-import {
-  Copy,
-  Download,
-  FileCodeCorner,
-  FolderTree,
-  Link,
-  Link2,
-} from 'lucide-react'
+import { Copy, Download, FileCodeCorner, FolderTree, Link2 } from 'lucide-react'
 import { apiUrl } from '@/api/client'
 import type { ResolvedRef } from '@/api/queries'
 import type { Crumb, MenuItem } from '@/features/shell/top-line'
 import { copyText } from '@/lib/clipboard'
-import { type RepoView, repoLink, repoPermalink } from '@/lib/url'
+import { repoLink } from '@/lib/url'
 
-export function repoCrumbs(repo: string, ref?: string): Crumb[] {
+export function repoCrumbs(repo: string): Crumb[] {
   const org = repo.slice(0, repo.indexOf('/'))
   const name = repo.slice(repo.indexOf('/') + 1)
   return [
     {
       key: 'org',
       label: org,
-      link: { to: '/$org/$', params: { org, _splat: '' } },
+      menu: { kind: 'org', org },
     },
     {
       key: 'repo',
       label: name,
-      link: repoLink(repo, { kind: 'tree', ref, path: '' }),
+      menu: { kind: 'repo', repo },
     },
   ]
 }
 
-// copyRepoLink copies the URL of the repo page being viewed,
-// pinned to commit when the view carries a ref.
-export function copyRepoLink(repo: string, view: RepoView, commit?: string) {
-  void copyText(repoPermalink(window.location.href, repo, view, commit), 'Link')
+export function copyPageLink() {
+  void copyText(window.location.href, 'Link')
+}
+
+const copyLinkItem: MenuItem = {
+  key: 'copy-link',
+  label: 'Copy link',
+  icon: Link2,
+  shortcut: 'repo.copyLink',
+  run: copyPageLink,
 }
 
 export function historyActions(
@@ -41,21 +40,8 @@ export function historyActions(
   path: string,
   file: boolean | undefined,
 ): MenuItem[] {
-  const out: MenuItem[] = [
-    {
-      key: 'copy-link',
-      label: 'Copy link',
-      icon: Link,
-      run: () => void copyText(window.location.href, 'Link'),
-    },
-  ]
+  const out: MenuItem[] = [copyLinkItem]
   if (!resolved) return out
-  out.push({
-    key: 'permalink',
-    label: 'Copy permalink',
-    icon: Link2,
-    run: () => copyRepoLink(repo, { kind: 'commits', path }, resolved.commit),
-  })
   if (file !== undefined) {
     const ref = resolved.isDefault ? undefined : resolved.name
     out.push({
@@ -75,8 +61,8 @@ export function pathActions(
 ): MenuItem[] {
   const { path } = view
   const file = view.kind !== 'tree'
+  if (!resolved) return [copyLinkItem]
   const out: MenuItem[] = []
-  if (!resolved) return out
   if (file) {
     const raw = apiUrl('raw', { repo, ref: resolved.rev, path })
     out.push(
@@ -108,12 +94,6 @@ export function pathActions(
       run: () => void copyText(path, 'Path'),
     })
   }
-  out.push({
-    key: 'permalink',
-    label: 'Copy permalink',
-    icon: Link2,
-    shortcut: 'repo.copyPermalink',
-    run: () => copyRepoLink(repo, view, resolved.commit),
-  })
+  out.push(copyLinkItem)
   return out
 }

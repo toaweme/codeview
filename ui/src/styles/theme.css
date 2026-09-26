@@ -57,6 +57,18 @@
   --warn: hsl(34 80% 36%);
   --info: hsl(205 70% 40%);
 
+  /* blame age, oldest first */
+  --age-1: hsl(40 52% 89%);
+  --age-2: hsl(39 54% 83%);
+  --age-3: hsl(38 56% 78%);
+  --age-4: hsl(37 59% 72%);
+  --age-5: hsl(36 61% 67%);
+  --age-6: hsl(34 63% 61%);
+  --age-7: hsl(33 65% 56%);
+  --age-8: hsl(32 68% 50%);
+  --age-9: hsl(31 70% 45%);
+  --age-10: hsl(30 72% 39%);
+
   --code-font: 'Geist Variable', ui-sans-serif, system-ui, -apple-system,
     'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
@@ -96,6 +108,17 @@
 
   --warn: hsl(38 85% 62%);
   --info: hsl(205 80% 68%);
+
+  --age-1: hsl(30 28% 22%);
+  --age-2: hsl(31 36% 27%);
+  --age-3: hsl(32 44% 32%);
+  --age-4: hsl(33 52% 38%);
+  --age-5: hsl(34 58% 44%);
+  --age-6: hsl(35 64% 50%);
+  --age-7: hsl(37 72% 56%);
+  --age-8: hsl(38 80% 61%);
+  --age-9: hsl(40 88% 66%);
+  --age-10: hsl(42 95% 72%);
 
   --line-sel: color-mix(in oklab, var(--primary) 9%, var(--background));
   --line-sel-gutter: color-mix(in oklab, var(--primary) 15%, var(--background));

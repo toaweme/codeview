@@ -12,9 +12,11 @@ import {
   renderQuery,
 } from '@/api/queries'
 import type { Blame, BlameRange } from '@/api/types'
+import { Avatar } from '@/components/avatar'
 import { Badge } from '@/components/badge'
 import { LineContent } from '@/components/code/tokens'
 import { Markdown } from '@/components/markdown'
+import { Tooltip } from '@/components/tooltip'
 import { ErrorState, Skeleton } from '@/features/shell/states'
 import { Group, MoreMenu, ViewSwitch } from '@/features/shell/top-line'
 import { getHighlight, useHighlightVersion } from '@/highlight'
@@ -22,19 +24,20 @@ import { cn } from '@/lib/cn'
 import { useCommands } from '@/lib/commands'
 import { formatBytes, isImagePath, shortHash } from '@/lib/format'
 import { useTextWidth } from '@/lib/measure'
-import { ageRatio, relativeTime } from '@/lib/time'
+import { ageRatio, ageStep, relativeTime } from '@/lib/time'
 import {
   formatLineHash,
   parseLineHash,
   repoLink,
   type Selection,
 } from '@/lib/url'
+import { authorLabel, BlameLegend } from './blame-legend'
 import { mergeBlame, splitLines } from './file-lines'
 import { pathActions } from './path-actions'
 import { PathBar, ViewToggles } from './path-bar'
 
 const ROW = 23
-const BLAME_W = 340
+const BLAME_W = 300
 const AHEAD = 400
 
 export function FileView({
@@ -173,16 +176,19 @@ export function FileView({
           </div>
         </div>
       ) : (
-        <CodeLines
-          key={`${repo}:${rev}:${path}`}
-          docKey={`blob:${repo}:${rev}:${path}`}
-          path={path}
-          text={blob.data.content}
-          truncated={blob.data.truncated}
-          blame={blame ? blameQ.data : undefined}
-          blameLoading={blame && blameQ.isPending}
-          repo={repo}
-        />
+        <>
+          {blame && <BlameLegend blame={blameQ.data} />}
+          <CodeLines
+            key={`${repo}:${rev}:${path}`}
+            docKey={`blob:${repo}:${rev}:${path}`}
+            path={path}
+            text={blob.data.content}
+            truncated={blob.data.truncated}
+            blame={blame ? blameQ.data : undefined}
+            blameLoading={blame && blameQ.isPending}
+            repo={repo}
+          />
+        </>
       )}
     </>
   )
@@ -356,6 +362,9 @@ function CodeLines({
                   className={cn(
                     'absolute top-0 left-0 flex w-full',
                     selected && 'bg-line-sel',
+                    rangeStart &&
+                      i > 0 &&
+                      "before:absolute before:inset-x-0 before:top-0 before:z-[3] before:h-px before:bg-border before:content-['']",
                   )}
                   style={{
                     height: ROW,
@@ -368,7 +377,6 @@ function CodeLines({
                       idx={blameIdx}
                       range={r}
                       first={!!rangeStart}
-                      divider={!!rangeStart && i > 0}
                     />
                   )}
                   <button
@@ -404,29 +412,43 @@ function BlameCell({
   idx,
   range,
   first,
-  divider,
 }: {
   repo: string
   idx: BlameIndex | null
   range: number
   first: boolean
-  divider: boolean
 }) {
   const r = idx && range >= 0 ? idx.ranges[range] : null
-  const age =
-    r && idx ? ageRatio(r.commit.author.date, idx.oldest, idx.newest) : 0
+  const step =
+    r && idx
+      ? ageStep(ageRatio(r.commit.author.date, idx.oldest, idx.newest))
+      : -1
   return (
     <div
       className={cn(
         'sticky z-[2] flex shrink-0 items-center',
-        'left-0 gap-3 pr-4 pl-6',
+        'left-0 gap-3 pr-4',
         'bg-background font-sans text-sm',
-        divider && 'shadow-[inset_0_1px_0_var(--border)]',
       )}
       style={{ width: BLAME_W }}
     >
+      <span
+        className="mr-2 w-1 shrink-0 self-stretch"
+        style={{
+          backgroundColor: step >= 0 ? `var(--age-${step + 1})` : 'transparent',
+        }}
+      />
       {r && first ? (
         <>
+          <span className="w-24 shrink-0 whitespace-nowrap text-faint text-xs num">
+            {relativeTime(r.commit.author.date)}
+          </span>
+          <Tooltip label={authorLabel(r.commit.author)}>
+            <Avatar
+              name={r.commit.author.name}
+              className="size-5 text-[10px]"
+            />
+          </Tooltip>
           <Link
             {...repoLink(repo, { kind: 'commit', hash: r.commit.hash })}
             title={`${r.commit.subject}\n${r.commit.author.name}, ${shortHash(r.commit.hash)}`}
@@ -439,26 +461,12 @@ function BlameCell({
           >
             {r.commit.subject}
           </Link>
-          <span className="max-w-24 shrink-0 truncate text-faint">
-            {r.commit.author.name}
-          </span>
-          <span className="w-16 shrink-0 truncate text-right text-faint text-xs num">
-            {relativeTime(r.commit.author.date)}
-          </span>
         </>
       ) : !idx ? (
         <span className="h-2 w-40 animate-pulse rounded bg-muted" />
       ) : (
         <span className="flex-1" />
       )}
-      <span
-        className="h-full w-0.5 shrink-0 rounded-full"
-        style={{
-          backgroundColor: r
-            ? `color-mix(in oklab, var(--primary) ${Math.round(10 + age * 70)}%, transparent)`
-            : 'transparent',
-        }}
-      />
     </div>
   )
 }

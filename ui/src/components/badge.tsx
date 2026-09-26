@@ -39,10 +39,11 @@ export function Badge({
 }
 
 export function Counts({ add, del }: { add: number; del: number }) {
+  if (add === 0 && del === 0) return null
   return (
     <span className="flex shrink-0 items-center gap-1">
-      <Badge tone="add">+{add.toLocaleString()}</Badge>
-      <Badge tone="del">−{del.toLocaleString()}</Badge>
+      {add > 0 && <Badge tone="add">+{add.toLocaleString()}</Badge>}
+      {del > 0 && <Badge tone="del">−{del.toLocaleString()}</Badge>}
     </span>
   )
 }

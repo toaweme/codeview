@@ -6,7 +6,6 @@ import {
   parseRepoSearch,
   type RepoView,
   repoHref,
-  repoPermalink,
   repoSplat,
   splitRevision,
 } from './url'
@@ -161,65 +160,4 @@ describe('splitRevision', () => {
   ]
   for (const [rev, name, suffix] of cases)
     test(rev, () => expect(splitRevision(rev)).toEqual({ name, suffix }))
-})
-
-describe('repoPermalink', () => {
-  const at = 'http://h:1'
-  const sha = 'abc123def456abc123def456abc123def456abcd'
-  const cases: [string, string, RepoView, string | undefined, string][] = [
-    [
-      'blob keeps the line hash',
-      `${at}/o/r/blob/src/a.ts#L3-L5`,
-      { kind: 'blob', path: 'src/a.ts' },
-      sha,
-      `${at}/o/r@${sha}/blob/src/a.ts#L3-L5`,
-    ],
-    [
-      'blame on a branch',
-      `${at}/o/r@dev/blame/a.ts`,
-      { kind: 'blame', ref: 'dev', path: 'a.ts' },
-      sha,
-      `${at}/o/r@${sha}/blame/a.ts`,
-    ],
-    [
-      'repo root',
-      `${at}/o/r`,
-      { kind: 'tree', path: '' },
-      sha,
-      `${at}/o/r@${sha}`,
-    ],
-    [
-      'commits keeps the query',
-      `${at}/o/r/commits/a?author=x`,
-      { kind: 'commits', path: 'a' },
-      sha,
-      `${at}/o/r/commits@${sha}/a?author=x`,
-    ],
-    [
-      'no commit leaves the url',
-      `${at}/o/r@dev/tree/a`,
-      { kind: 'tree', ref: 'dev', path: 'a' },
-      undefined,
-      `${at}/o/r@dev/tree/a`,
-    ],
-    [
-      'compare leaves the url',
-      `${at}/o/r/compare/a...b?mode=direct`,
-      { kind: 'compare', base: 'a', head: 'b', mode: 'direct' },
-      sha,
-      `${at}/o/r/compare/a...b?mode=direct`,
-    ],
-    [
-      'commit page leaves the url',
-      `${at}/o/r/commit/${sha}`,
-      { kind: 'commit', hash: sha },
-      sha,
-      `${at}/o/r/commit/${sha}`,
-    ],
-  ]
-  for (const [name, href, view, commit, want] of cases) {
-    test(name, () =>
-      expect(repoPermalink(href, 'o/r', view, commit)).toBe(want),
-    )
-  }
 })

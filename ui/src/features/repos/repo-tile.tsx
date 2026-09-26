@@ -23,6 +23,7 @@ export function RepoTile({
   index,
   selected,
   onHover,
+  onLeave,
 }: {
   repo: Repo
   name: string
@@ -30,6 +31,7 @@ export function RepoTile({
   index: number
   selected: boolean
   onHover: () => void
+  onLeave: () => void
 }) {
   const preload = usePressPreload()
   const home = repoLink(repo.name, { kind: 'tree', path: '' })
@@ -47,6 +49,7 @@ export function RepoTile({
         selected && RAISED,
       )}
       onMouseEnter={onHover}
+      onMouseLeave={onLeave}
     >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">

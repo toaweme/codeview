@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { ageRatio, relativeTime } from './time'
+import { ageRatio, ageStep, relativeTime } from './time'
 
 describe('relativeTime', () => {
   const now = Date.parse('2026-09-24T12:00:00Z')
@@ -23,4 +23,19 @@ test('ageRatio clamps', () => {
   expect(ageRatio('2019-01-01T00:00:00Z', a, b)).toBe(0)
   expect(ageRatio('2022-01-01T00:00:00Z', a, b)).toBe(1)
   expect(ageRatio('2020-07-02T00:00:00Z', a, b)).toBeCloseTo(0.5, 1)
+})
+
+describe('ageStep', () => {
+  const cases: [number, number][] = [
+    [0, 0],
+    [0.05, 0],
+    [0.1, 1],
+    [0.55, 5],
+    [0.99, 9],
+    [1, 9],
+    [-1, 0],
+  ]
+  for (const [ratio, want] of cases) {
+    test(String(ratio), () => expect(ageStep(ratio)).toBe(want))
+  }
 })
