@@ -225,7 +225,7 @@ export function ComparePage({
       </>
     )
   const oldRev =
-    mode === 'direct' ? q.data.base || base : q.data.mergeBase || base
+    mode === 'direct' ? q.data.base || base : q.data.merge_base || base
   return (
     <DiffView
       key={`${base}...${head}:${mode}`}

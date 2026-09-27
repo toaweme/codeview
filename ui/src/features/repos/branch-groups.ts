@@ -23,7 +23,7 @@ export function groupBranches(
     sort === 'unmerged' ? b.ahead : sort === 'behind' ? b.behind : 0
   const list = branches.toSorted(
     (a, b) =>
-      by(b) - by(a) || Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
+      by(b) - by(a) || Date.parse(b.updated_at) - Date.parse(a.updated_at),
   )
   const out: BranchGroups = { people: [], bots: [], merged: [] }
   for (const b of list) {

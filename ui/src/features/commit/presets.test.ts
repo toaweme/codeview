@@ -5,7 +5,7 @@ import { buildPresets, middleTruncate } from './presets'
 const ref = (name: string, day: number): Ref => ({
   name,
   commit: name,
-  updatedAt: `2026-01-${String(day).padStart(2, '0')}T00:00:00Z`,
+  updated_at: `2026-01-${String(day).padStart(2, '0')}T00:00:00Z`,
 })
 
 test('buildPresets caps the list and ranks bot branches last', () => {

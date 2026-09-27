@@ -52,19 +52,19 @@ export function gapsFor(
   let nextNew = 1
   let nextOld = 1
   f.hunks.forEach((h, i) => {
-    const end = h.newStart - 1
+    const end = h.new_start - 1
     out.push(
       end >= nextNew
         ? {
             key: gapKey(file, i),
             start: nextNew,
             end,
-            oldOffset: h.oldStart - h.newStart,
+            oldOffset: h.old_start - h.new_start,
           }
         : null,
     )
-    nextNew = h.newStart + h.newLines
-    nextOld = h.oldStart + h.oldLines
+    nextNew = h.new_start + h.new_lines
+    nextOld = h.old_start + h.old_lines
   })
   const trailingEnd = totalLines ?? null
   if (f.hunks.length > 0 && (trailingEnd === null || trailingEnd >= nextNew)) {

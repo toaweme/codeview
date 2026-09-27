@@ -62,7 +62,7 @@ func Test_API_LogFilter(t *testing.T) {
 		},
 		{
 			name:   "committer dates",
-			params: params{"since": "2025-01-15", "until": "2025-01-31", "dateField": "committer"},
+			params: params{"since": "2025-01-15", "until": "2025-01-31", "date_field": "committer"},
 			want:   []string{f.Docs, f.Parser},
 		},
 		{
@@ -90,7 +90,7 @@ func Test_API_LogFilter(t *testing.T) {
 		},
 		{
 			name:   "paged committer dates",
-			params: params{"until": "2025-02-28", "dateField": "committer", "limit": "2"},
+			params: params{"until": "2025-02-28", "date_field": "committer", "limit": "2"},
 			want:   []string{f.Rebased, f.Docs, f.Parser, f.Initial},
 		},
 		{
@@ -128,7 +128,7 @@ func Test_API_LogFilterInvalid(t *testing.T) {
 		{"cursor without filters", params{"limit": "1", "cursor": cursor}},
 		{"cursor in the old form", params{"cursor": f.Typo + ".1"}},
 		{"bad since", params{"since": "last week"}},
-		{"bad date field", params{"dateField": "tagger"}},
+		{"bad date field", params{"date_field": "tagger"}},
 		{"reversed range", params{"since": "2025-02-01", "until": "2025-01-01"}},
 		{"bad bucket", params{"bucket": "hour"}},
 	}
@@ -165,7 +165,7 @@ func Test_API_Histogram(t *testing.T) {
 		},
 		{
 			name:   "committer months",
-			params: params{"bucket": "month", "dateField": "committer"},
+			params: params{"bucket": "month", "date_field": "committer"},
 			want:   "2025-01-01:3 2025-02-01:1 2025-03-01:1",
 		},
 		{

@@ -253,7 +253,7 @@ func Test_API_CommitAndCompare(t *testing.T) {
 
 	query := params{"repo": f.Name, "base": "v1.0", "head": "feature/x"}
 	cmp := decode(t, get(h, "/api/compare", query))
-	if cmp["base"] != f.Second || cmp["head"] != f.Feature || cmp["mergeBase"] != f.Second {
+	if cmp["base"] != f.Second || cmp["head"] != f.Feature || cmp["merge_base"] != f.Second {
 		t.Fatalf("compare = %v", cmp)
 	}
 	if n := len(cmp["commits"].([]any)); n != 2 {
@@ -312,8 +312,8 @@ func Test_API_CompareMode(t *testing.T) {
 				return
 			}
 			cmp := decode(t, rec)
-			if cmp["mergeBase"] != tt.mergeBase {
-				t.Fatalf("mergeBase = %v, want %s", cmp["mergeBase"], tt.mergeBase)
+			if cmp["merge_base"] != tt.mergeBase {
+				t.Fatalf("merge_base = %v, want %s", cmp["merge_base"], tt.mergeBase)
 			}
 			if n := len(cmp["files"].([]any)); n != tt.files {
 				t.Fatalf("files = %d, want %d", n, tt.files)
@@ -420,12 +420,12 @@ func Test_API_Summaries(t *testing.T) {
 			body: repos,
 			keys: []string{
 				"name",
-				"defaultBranch",
-				"workTree",
-				"lastCommit",
-				"latestTag",
-				"branchCount",
-				"tagCount",
+				"default_branch",
+				"work_tree",
+				"last_commit",
+				"latest_tag",
+				"branch_count",
+				"tag_count",
 				"activity",
 			},
 		},

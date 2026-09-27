@@ -9,7 +9,7 @@ function c(repo: string, day: number): ActivityCommit {
     hash: `${repo}${day}`,
     subject: '',
     author: { name: '', email: '', date: when },
-    committedAt: when,
+    committed_at: when,
     ref: 'main',
   }
 }

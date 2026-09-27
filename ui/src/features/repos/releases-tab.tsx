@@ -36,9 +36,9 @@ export function ReleasesTab({
   const [shown, setShown] = useState<Shown>('versions')
   const [picked, setPicked] = useRepoFilter()
 
-  const tagged = useMemo(() => scope.filter((r) => r.tagCount > 0), [scope])
+  const tagged = useMemo(() => scope.filter((r) => r.tag_count > 0), [scope])
   const tagCounts = useMemo(
-    () => new Map(tagged.map((r) => [r.name, r.tagCount])),
+    () => new Map(tagged.map((r) => [r.name, r.tag_count])),
     [tagged],
   )
   const inView = useMemo(

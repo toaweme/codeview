@@ -150,10 +150,10 @@ export function CommitFeed({
   const groups = useMemo(() => {
     const out: { key: string; day: string; commits: ActivityCommit[] }[] = []
     for (const c of commits) {
-      const k = dayKey(c.committedAt)
+      const k = dayKey(c.committed_at)
       const last = out[out.length - 1]
       if (last && last.key === k) last.commits.push(c)
-      else out.push({ key: k, day: formatDay(c.committedAt), commits: [c] })
+      else out.push({ key: k, day: formatDay(c.committed_at), commits: [c] })
     }
     return out
   }, [commits])
@@ -184,7 +184,7 @@ export function CommitFeed({
               <span className="hidden max-w-36 shrink-0 truncate text-muted-foreground text-sm md:block">
                 {c.author.name}
               </span>
-              <Clock iso={c.committedAt} />
+              <Clock iso={c.committed_at} />
               <Badge className="w-[4.75rem] justify-center">
                 {shortHash(c.hash)}
               </Badge>
@@ -320,7 +320,7 @@ export function BranchRow({
           </span>
         </Tooltip>
       </span>
-      <When iso={b.updatedAt} />
+      <When iso={b.updated_at} />
     </li>
   )
 }

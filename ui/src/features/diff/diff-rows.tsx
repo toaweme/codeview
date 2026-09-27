@@ -130,7 +130,7 @@ export function DiffRow({ row, ctx }: { row: Row; ctx: RowContext }) {
           </div>
           <span className="truncate py-1 pl-2">
             <span className="num">
-              @@ -{h.oldStart},{h.oldLines} +{h.newStart},{h.newLines} @@
+              @@ -{h.old_start},{h.old_lines} +{h.new_start},{h.new_lines} @@
             </span>
             {row.header && (
               <span className="ml-3 text-muted-foreground">
@@ -373,7 +373,7 @@ export function FileHeader({
   const f = ctx.files[file]
   const open = !ctx.collapsed.has(file)
   const viewed = ctx.viewed.has(f.path)
-  const renamed = f.oldPath && f.oldPath !== f.path
+  const renamed = f.old_path && f.old_path !== f.path
   return (
     <div className={cn('font-sans', !sticky && file > 0 && 'pt-6')}>
       <div
@@ -411,7 +411,7 @@ export function FileHeader({
         >
           {renamed && (
             <span className="font-normal text-muted-foreground">
-              {f.oldPath} <span className="text-faint">→</span>{' '}
+              {f.old_path} <span className="text-faint">→</span>{' '}
             </span>
           )}
           {f.path}

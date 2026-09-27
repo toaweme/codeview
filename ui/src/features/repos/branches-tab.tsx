@@ -42,7 +42,7 @@ export function BranchesTab({
   const [sort, setSort] = useState<BranchSort>('recent')
 
   const defaults = useMemo(
-    () => new Map(scope.map((r) => [r.name, r.defaultBranch])),
+    () => new Map(scope.map((r) => [r.name, r.default_branch])),
     [scope],
   )
   const perRepo = useMemo(() => {

@@ -24,25 +24,25 @@ const add = (n: number, text = `a${n}`): DiffLine => ({
 // hunks at new lines 5..7 and 20..22, one line added in the first
 const file: FileDiff = {
   path: 'a.go',
-  oldPath: 'a.go',
+  old_path: 'a.go',
   status: 'modified',
   additions: 2,
   deletions: 1,
   binary: false,
   hunks: [
     {
-      oldStart: 5,
-      oldLines: 2,
-      newStart: 5,
-      newLines: 3,
+      old_start: 5,
+      old_lines: 2,
+      new_start: 5,
+      new_lines: 3,
       header: '@@ -5,2 +5,3 @@',
       lines: [ctx(5, 5), add(6), ctx(6, 7)],
     },
     {
-      oldStart: 19,
-      oldLines: 3,
-      newStart: 20,
-      newLines: 3,
+      old_start: 19,
+      old_lines: 3,
+      new_start: 20,
+      new_lines: 3,
       header: '@@ -19,3 +20,3 @@ func x()',
       lines: [ctx(19, 20), del(20), add(21), ctx(21, 22)],
     },
@@ -65,7 +65,7 @@ describe('gapsFor', () => {
   test('no leading gap at line 1, no trailing gap at EOF', () => {
     const f: FileDiff = {
       ...file,
-      hunks: [{ ...file.hunks[0], oldStart: 1, newStart: 1 }],
+      hunks: [{ ...file.hunks[0], old_start: 1, new_start: 1 }],
     }
     const g = gapsFor(f, 0, 3)
     expect(g[0]).toBeNull()

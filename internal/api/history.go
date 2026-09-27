@@ -52,7 +52,7 @@ func parseFilter(q url.Values) (git.LogFilter, error) {
 	f := git.LogFilter{
 		Since:     since,
 		Until:     until,
-		DateField: git.DateField(q.Get("dateField")),
+		DateField: git.DateField(q.Get("date_field")),
 		Author:    strings.TrimSpace(q.Get("author")),
 		Grep:      strings.TrimSpace(q.Get("grep")),
 	}

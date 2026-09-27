@@ -42,11 +42,11 @@ describe('buildReleases', () => {
   test('links each release to the previous one on its track', () => {
     const at = (d: number) => `2026-09-${String(d).padStart(2, '0')}T00:00:00Z`
     const got = buildReleases('o/r', [
-      { name: 'v1.0.0', commit: 'a', updatedAt: at(1) },
-      { name: 'mod/v0.1.0', commit: 'b', updatedAt: at(2) },
-      { name: 'nightly', commit: 'c', updatedAt: at(3) },
-      { name: 'v1.1.0', commit: 'd', updatedAt: at(4) },
-      { name: 'mod/v0.2.0', commit: 'e', updatedAt: at(5) },
+      { name: 'v1.0.0', commit: 'a', updated_at: at(1) },
+      { name: 'mod/v0.1.0', commit: 'b', updated_at: at(2) },
+      { name: 'nightly', commit: 'c', updated_at: at(3) },
+      { name: 'v1.1.0', commit: 'd', updated_at: at(4) },
+      { name: 'mod/v0.2.0', commit: 'e', updated_at: at(5) },
     ])
     expect(got.map((r) => [r.name, r.previous])).toEqual([
       ['mod/v0.2.0', 'mod/v0.1.0'],

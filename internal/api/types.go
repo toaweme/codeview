@@ -48,7 +48,7 @@ type commitResponse struct {
 type compareResponse struct {
 	Base      string `json:"base"`
 	Head      string `json:"head"`
-	MergeBase string `json:"mergeBase"`
+	MergeBase string `json:"merge_base"`
 	Ahead     int    `json:"ahead"`
 	Behind    int    `json:"behind"`
 	Diverged  bool   `json:"diverged"`

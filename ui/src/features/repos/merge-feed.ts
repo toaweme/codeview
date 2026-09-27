@@ -16,7 +16,7 @@ export type Merged = {
 
 function oldest(s: Stream): number {
   const last = s.commits[s.commits.length - 1]
-  return last ? Date.parse(last.committedAt) : Number.POSITIVE_INFINITY
+  return last ? Date.parse(last.committed_at) : Number.POSITIVE_INFINITY
 }
 
 function live(s: Stream): boolean {
@@ -33,8 +33,8 @@ function watermark(streams: Stream[]): number {
 function sortedPool(streams: Stream[], since: number): ActivityCommit[] {
   return streams
     .flatMap((s) => s.commits)
-    .filter((c) => Date.parse(c.committedAt) >= since)
-    .sort((a, b) => Date.parse(b.committedAt) - Date.parse(a.committedAt))
+    .filter((c) => Date.parse(c.committed_at) >= since)
+    .sort((a, b) => Date.parse(b.committed_at) - Date.parse(a.committed_at))
 }
 
 export function mergeStreams(
@@ -57,7 +57,7 @@ export function nextFetches(
   const pool = sortedPool(streams, since)
   const reach = pool[showing + want - 1]
   const target = Math.max(
-    reach ? Date.parse(reach.committedAt) : Number.NEGATIVE_INFINITY,
+    reach ? Date.parse(reach.committed_at) : Number.NEGATIVE_INFINITY,
     since,
   )
   return streams

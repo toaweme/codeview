@@ -135,7 +135,7 @@ export function CommandPalette({
       const all = [
         ...refs.branches.map((b) => ({ ...b, tag: false })),
         ...refs.tags.map((t) => ({ ...t, tag: true })),
-      ].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+      ].sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))
       const byName = new Map(all.map((r) => [r.name, r]))
       for (const r of rankPaths(
         q,
@@ -149,14 +149,14 @@ export function CommandPalette({
           label: r.path,
           positions: r.positions,
           icon: ref?.tag ? Tag : GitBranch,
-          detail: ref && relativeTime(ref.updatedAt),
+          detail: ref && relativeTime(ref.updated_at),
           run: () => onRef(r.path),
         })
       }
     }
 
     const list = [...(repos.data?.repos ?? [])].sort(
-      (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
+      (a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at),
     )
     for (const r of rankPaths(
       q,

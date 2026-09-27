@@ -81,19 +81,19 @@ type Repo interface {
 type RepoInfo struct {
 	Name          string    `json:"name"`
 	Description   string    `json:"description"`
-	DefaultBranch string    `json:"defaultBranch"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	DefaultBranch string    `json:"default_branch"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 const ActivityWeeks = 12
 
 type RepoSummary struct {
 	RepoInfo
-	WorkTree    bool           `json:"workTree"`
-	LastCommit  *CommitSummary `json:"lastCommit"`
-	LatestTag   *Tag           `json:"latestTag"`
-	BranchCount int            `json:"branchCount"`
-	TagCount    int            `json:"tagCount"`
+	WorkTree    bool           `json:"work_tree"`
+	LastCommit  *CommitSummary `json:"last_commit"`
+	LatestTag   *Tag           `json:"latest_tag"`
+	BranchCount int            `json:"branch_count"`
+	TagCount    int            `json:"tag_count"`
 	// Activity holds weekly commit counts on the default branch, oldest first.
 	Activity []int `json:"activity"`
 }
@@ -108,7 +108,7 @@ type CommitSummary struct {
 type Tag struct {
 	Name     string    `json:"name"`
 	Commit   string    `json:"commit"`
-	TaggedAt time.Time `json:"taggedAt"`
+	TaggedAt time.Time `json:"tagged_at"`
 }
 
 // ActivityQuery narrows activity to an org, or to one repository when Repo is set.
@@ -129,7 +129,7 @@ type ActivityCommit struct {
 	Hash        string    `json:"hash"`
 	Subject     string    `json:"subject"`
 	Author      Signature `json:"author"`
-	CommittedAt time.Time `json:"committedAt"`
+	CommittedAt time.Time `json:"committed_at"`
 	Ref         string    `json:"ref"`
 }
 
@@ -137,7 +137,7 @@ type ActivityTag struct {
 	Repo     string    `json:"repo"`
 	Name     string    `json:"name"`
 	Commit   string    `json:"commit"`
-	TaggedAt time.Time `json:"taggedAt"`
+	TaggedAt time.Time `json:"tagged_at"`
 	Previous string    `json:"previous"`
 }
 
@@ -147,7 +147,7 @@ type ActivityBranch struct {
 	Name      string    `json:"name"`
 	Commit    string    `json:"commit"`
 	Subject   string    `json:"subject"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	UpdatedAt time.Time `json:"updated_at"`
 	Ahead     int       `json:"ahead"`
 	Behind    int       `json:"behind"`
 }
@@ -155,7 +155,7 @@ type ActivityBranch struct {
 type Ref struct {
 	Name      string    `json:"name"`
 	Commit    string    `json:"commit"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type Refs struct {
@@ -283,7 +283,7 @@ const (
 // FileDiff counts every added and deleted line even when Hunks are truncated.
 type FileDiff struct {
 	Path      string     `json:"path"`
-	OldPath   string     `json:"oldPath"`
+	OldPath   string     `json:"old_path"`
 	Status    FileStatus `json:"status"`
 	Additions int        `json:"additions"`
 	Deletions int        `json:"deletions"`
@@ -293,10 +293,10 @@ type FileDiff struct {
 }
 
 type Hunk struct {
-	OldStart int    `json:"oldStart"`
-	OldLines int    `json:"oldLines"`
-	NewStart int    `json:"newStart"`
-	NewLines int    `json:"newLines"`
+	OldStart int    `json:"old_start"`
+	OldLines int    `json:"old_lines"`
+	NewStart int    `json:"new_start"`
+	NewLines int    `json:"new_lines"`
 	Header   string `json:"header"`
 	Lines    []Line `json:"lines"`
 }

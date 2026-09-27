@@ -35,11 +35,11 @@ export function RepoTile({
 }) {
   const preload = usePressPreload()
   const home = repoLink(repo.name, { kind: 'tree', path: '' })
-  const tag = repo.latestTag
+  const tag = repo.latest_tag
   const tagLink = tag
     ? repoLink(repo.name, { kind: 'tree', ref: tag.name, path: '' })
     : undefined
-  const c = repo.lastCommit
+  const c = repo.last_commit
   return (
     <li
       data-index={index}
@@ -91,14 +91,14 @@ export function RepoTile({
         )}
       </div>
       <div className="flex h-(--badge-h) min-w-0 items-center gap-1.5">
-        {repo.defaultBranch && (
+        {repo.default_branch && (
           <Badge tone="primary" className="min-w-0">
             <GitBranch aria-hidden />
-            <span className="truncate">{repo.defaultBranch}</span>
+            <span className="truncate">{repo.default_branch}</span>
           </Badge>
         )}
         {tag && tagLink && (
-          <Tooltip label={`Tagged ${formatFull(tag.taggedAt)}`}>
+          <Tooltip label={`Tagged ${formatFull(tag.tagged_at)}`}>
             <Link
               {...tagLink}
               {...preload(tagLink)}
@@ -108,16 +108,16 @@ export function RepoTile({
                 <Tag aria-hidden />
                 <span>{tag.name}</span>
                 <span className="whitespace-nowrap font-normal opacity-75">
-                  {relativeTime(tag.taggedAt)}
+                  {relativeTime(tag.tagged_at)}
                 </span>
               </Badge>
             </Link>
           </Tooltip>
         )}
         <span className="num ml-auto shrink-0 whitespace-nowrap pl-2 text-faint text-xs">
-          {repo.branchCount} {repo.branchCount === 1 ? 'branch' : 'branches'}
+          {repo.branch_count} {repo.branch_count === 1 ? 'branch' : 'branches'}
           <span className="pl-2">
-            {repo.tagCount} {repo.tagCount === 1 ? 'tag' : 'tags'}
+            {repo.tag_count} {repo.tag_count === 1 ? 'tag' : 'tags'}
           </span>
         </span>
       </div>

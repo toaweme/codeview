@@ -132,7 +132,7 @@ export const histogramQuery = (
     queryFn: ({ signal }) =>
       getJSON<Histogram>(
         'log/histogram',
-        { repo, ref: rev, path, bucket, dateField },
+        { repo, ref: rev, path, bucket, date_field: dateField },
         signal,
       ),
     staleTime: staleFor(rev),

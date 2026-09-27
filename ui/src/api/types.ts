@@ -1,17 +1,17 @@
-export type Tag = { name: string; commit: string; taggedAt: string }
+export type Tag = { name: string; commit: string; tagged_at: string }
 
 // activity is commits per week over the last 12 weeks, oldest first
 export type Repo = {
   name: string
   description: string
-  defaultBranch: string
-  updatedAt: string
-  lastCommit: { hash: string; subject: string; author: Signature } | null
-  latestTag: Tag | null
-  branchCount: number
-  tagCount: number
+  default_branch: string
+  updated_at: string
+  last_commit: { hash: string; subject: string; author: Signature } | null
+  latest_tag: Tag | null
+  branch_count: number
+  tag_count: number
   activity: number[]
-  workTree?: boolean
+  work_tree?: boolean
 }
 
 // RepoMode is `public` when only repositories exported to git-daemon are
@@ -24,7 +24,7 @@ export type ActivityCommit = {
   hash: string
   subject: string
   author: Signature
-  committedAt: string
+  committed_at: string
   ref: string
 }
 
@@ -35,7 +35,7 @@ export type ActivityBranch = {
   name: string
   commit: string
   subject: string
-  updatedAt: string
+  updated_at: string
   ahead: number
   behind: number
 }
@@ -46,7 +46,7 @@ export type Activity = {
   branches: ActivityBranch[]
 }
 
-export type Ref = { name: string; commit: string; updatedAt: string }
+export type Ref = { name: string; commit: string; updated_at: string }
 
 export type Refs = { default: string; branches: Ref[]; tags: Ref[] }
 
@@ -109,10 +109,10 @@ export type DiffLine = {
 }
 
 export type Hunk = {
-  oldStart: number
-  oldLines: number
-  newStart: number
-  newLines: number
+  old_start: number
+  old_lines: number
+  new_start: number
+  new_lines: number
   header: string
   lines: DiffLine[]
 }
@@ -121,7 +121,7 @@ export type FileStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'copied'
 
 export type FileDiff = {
   path: string
-  oldPath: string
+  old_path: string
   status: FileStatus
   additions: number
   deletions: number
@@ -135,7 +135,7 @@ export type CommitDetail = { commit: Commit; files: FileDiff[] }
 export type Compare = {
   base: string
   head: string
-  mergeBase: string
+  merge_base: string
   // capped at 250
   ahead: number
   behind: number

@@ -17,7 +17,7 @@ const branch = (
   name,
   commit: name,
   subject: name,
-  updatedAt: new Date(Date.UTC(2026, 0, day)).toISOString(),
+  updated_at: new Date(Date.UTC(2026, 0, day)).toISOString(),
   ahead,
   behind,
 })

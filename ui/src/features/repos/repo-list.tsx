@@ -40,7 +40,7 @@ export function RepoList({ org }: { org?: string }) {
     () =>
       (q.data?.repos ?? [])
         .filter((r) => !org || r.name.startsWith(`${org}/`))
-        .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
+        .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at)),
     [q.data, org],
   )
 

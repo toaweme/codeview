@@ -145,7 +145,7 @@ export function apiParams(
     until: r.until ? localBound(r.until, true) : undefined,
     author: f.author,
     grep: f.grep,
-    dateField: f.date,
+    date_field: f.date,
   }
 }
 

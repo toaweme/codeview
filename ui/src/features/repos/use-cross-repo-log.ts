@@ -51,7 +51,7 @@ export function useCrossRepoLog(
           hash: c.hash,
           subject: c.subject,
           author: c.author,
-          committedAt: c.committer.date,
+          committed_at: c.committer.date,
           ref: branch,
         }))
         setStreams((s) => {

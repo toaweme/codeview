@@ -210,7 +210,7 @@ export function DiffView({
       const f = files[fi]
       const d = docsFor(f)
       const base = `diff:${repo}:${viewKey}:${fi}`
-      const o = getHighlight(`${base}:old`, f.oldPath || f.path, d.old.text)
+      const o = getHighlight(`${base}:old`, f.old_path || f.path, d.old.text)
       const n = getHighlight(`${base}:new`, f.path, d.new.text)
       o.want(1e9)
       n.want(1e9)

@@ -111,13 +111,13 @@ export function RefPicker({
         ? -1
         : tab === 'branches' && refs && b.name === refs.default
           ? 1
-          : Date.parse(b.updatedAt ?? '') - Date.parse(a.updatedAt ?? ''),
+          : Date.parse(b.updated_at ?? '') - Date.parse(a.updated_at ?? ''),
     )
     const out: RowOption[] = filterOptions(
       sorted.map((r) => ({
         value: r.name,
         label: r.name,
-        updatedAt: r.updatedAt,
+        updatedAt: r.updated_at,
       })),
       filter,
     ).map((r) => ({

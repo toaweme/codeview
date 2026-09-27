@@ -40,13 +40,13 @@ export type Release = {
 // each tag diffs against the previous release under the same module path
 export function buildReleases(
   repo: string,
-  tags: { name: string; commit: string; updatedAt: string }[],
+  tags: { name: string; commit: string; updated_at: string }[],
 ): Release[] {
   const list = tags.map((t) => ({
     repo,
     name: t.name,
     commit: t.commit,
-    taggedAt: t.updatedAt,
+    taggedAt: t.updated_at,
     previous: '',
     ...splitTag(t.name),
   }))

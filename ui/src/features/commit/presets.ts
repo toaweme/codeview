@@ -24,8 +24,8 @@ const MAX_PRESETS = 4
 
 export function buildPresets(refs?: Refs): Preset[] {
   if (!refs) return []
-  const byTime = <T extends { updatedAt: string }>(xs: T[]) =>
-    [...xs].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+  const byTime = <T extends { updated_at: string }>(xs: T[]) =>
+    [...xs].sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))
   const tags = byTime(refs.tags)
   const out: Preset[] = []
   if (tags[0] && refs.default)
@@ -50,7 +50,7 @@ export function buildPresets(refs?: Refs): Preset[] {
       key: `branch-${b.name}`,
       from: refs.default,
       to: b.name,
-      title: `What ${b.name} adds, updated ${relativeTime(b.updatedAt)}`,
+      title: `What ${b.name} adds, updated ${relativeTime(b.updated_at)}`,
     })
   return out
 }

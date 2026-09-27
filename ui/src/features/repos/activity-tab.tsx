@@ -43,14 +43,14 @@ export function ActivityTab({
   const [idle, setIdle] = useState({ loads: 0, matches: 0 })
 
   const withHistory = useMemo(
-    () => scope.filter((r) => r.lastCommit && r.defaultBranch),
+    () => scope.filter((r) => r.last_commit && r.default_branch),
     [scope],
   )
   const streams = useMemo(
     () =>
       withHistory
         .filter((r) => picked.length === 0 || picked.includes(r.name))
-        .map((r) => ({ name: r.name, ref: r.defaultBranch })),
+        .map((r) => ({ name: r.name, ref: r.default_branch })),
     [withHistory, picked],
   )
   // measured once when picked so the cut stays put while the page is open
