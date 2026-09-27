@@ -105,7 +105,10 @@ export function BranchesTab({
         ) : q.isError ? (
           <ErrorState error={q.error} />
         ) : total === 0 ? (
-          <PanelEmpty>Every repository is on its default branch.</PanelEmpty>
+          <PanelEmpty
+            title="No other branches"
+            description="Every repository is on its default branch."
+          />
         ) : (
           <BranchList
             groups={groups}

@@ -12,6 +12,7 @@ import type { ActivityBranch, ActivityCommit } from '@/api/types'
 import { Badge } from '@/components/badge'
 import { Combobox } from '@/components/combobox'
 import { Tooltip } from '@/components/tooltip'
+import { Empty, type EmptyProps } from '@/features/shell/states'
 import { cn } from '@/lib/cn'
 import { shortHash } from '@/lib/format'
 import { usePressPreload } from '@/lib/preload'
@@ -70,12 +71,9 @@ export const TEXT_LINK = cn(
   'focus-visible:outline-2 focus-visible:outline-ring',
 )
 
-export function PanelEmpty({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="px-2.5 py-6 text-center text-muted-foreground text-sm">
-      {children}
-    </p>
-  )
+// PanelEmpty is the compact empty state for the insides of panels.
+export function PanelEmpty(props: Omit<EmptyProps, 'size'>) {
+  return <Empty {...props} size="panel" />
 }
 
 export function RowsSkeleton({ rows }: { rows: number }) {

@@ -125,11 +125,18 @@ export function ActivityTab({
         ) : repos.isPending || (feed.pending && filtered.length === 0) ? (
           <RowsSkeleton rows={12} />
         ) : filtered.length === 0 && feed.complete ? (
-          <PanelEmpty>
-            {narrowed || range !== 'all'
-              ? 'No commits match these filters.'
-              : 'No commits yet.'}
-          </PanelEmpty>
+          narrowed || range !== 'all' ? (
+            <PanelEmpty
+              light
+              title="No commits match these filters"
+              description="Try a wider range or fewer filters."
+            />
+          ) : (
+            <PanelEmpty
+              title="No commits yet"
+              description="New commits across your repositories show up here."
+            />
+          )
         ) : (
           <>
             <CommitFeed commits={filtered} org={org} sticky />

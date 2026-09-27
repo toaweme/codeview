@@ -123,11 +123,18 @@ export function ReleasesTab({
         ) : pending ? (
           <RowsSkeleton rows={12} />
         ) : releases.length === 0 ? (
-          <PanelEmpty>
-            {hidden > 0
-              ? 'No version tags here. Pick all tags to see the others.'
-              : 'No tags yet.'}
-          </PanelEmpty>
+          hidden > 0 ? (
+            <PanelEmpty
+              light
+              title="No version tags here"
+              description="Pick all tags to see the others."
+            />
+          ) : (
+            <PanelEmpty
+              title="No releases yet"
+              description="Tags from your repositories show up here."
+            />
+          )
         ) : (
           <ReleaseList
             groups={groups}

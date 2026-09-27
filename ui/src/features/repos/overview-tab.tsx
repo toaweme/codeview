@@ -7,6 +7,7 @@ import { SearchInput } from '@/components/search-input'
 import { Empty, ErrorState } from '@/features/shell/states'
 import { cn } from '@/lib/cn'
 import { rankPaths } from '@/lib/fuzzy'
+import { GUIDE_URL } from '@/lib/links'
 import { groupRepos, repoBase, shiftPositions } from '@/lib/repo-name'
 import { groupLink, repoLink } from '@/lib/url'
 import { shortRepo } from './activity-links'
@@ -138,9 +139,19 @@ export function OverviewTab({
         {repos.isError ? (
           <ErrorState error={repos.error} />
         ) : repos.data && results.length === 0 ? (
-          <Empty>
-            {filter ? 'No repository matches.' : 'No repositories yet.'}
-          </Empty>
+          filter ? (
+            <Empty
+              light
+              title="No repository matches"
+              description="Try a shorter or different name."
+            />
+          ) : (
+            <Empty
+              title="No repositories here yet"
+              description="codeview shows the git repositories in the folder it was started with."
+              link={{ href: GUIDE_URL, label: 'Setup guide' }}
+            />
+          )
         ) : (
           <div ref={listRef} className="flex flex-col gap-6">
             {repos.isPending ? (
@@ -211,7 +222,10 @@ export function OverviewTab({
         ) : activity.isError ? (
           <ErrorState error={activity.error} />
         ) : activity.data.commits.length === 0 ? (
-          <PanelEmpty>No commits yet.</PanelEmpty>
+          <PanelEmpty
+            title="No commits yet"
+            description="New commits across your repositories show up here."
+          />
         ) : (
           <CommitFeed
             commits={activity.data.commits.slice(0, FEED_ROWS)}
