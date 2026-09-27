@@ -132,22 +132,27 @@ export function CommitsView({
           items={historyActions(repo, resolved, path, known ? file : undefined)}
         />
       </PathBar>
-      <div className="shrink-0 px-4 pt-3">
-        <FilterBar
-          filter={filter}
-          now={now}
-          authors={authors}
-          onChange={setFilter}
-        />
-        <FilterPills filter={filter} now={now} onChange={setFilter} />
-        <HistoryStrip
-          repo={repo}
-          rev={resolved?.rev ?? ''}
-          path={path}
-          field={field}
-          range={range}
-          onPick={setRange}
-        />
+      <div className="shrink-0 px-4 pt-4">
+        <div className="rounded-2xl bg-island-muted p-1.5">
+          {/* fields inside the muted toolbar sit on the island color */}
+          <div className="[--island-muted:var(--island)]">
+            <FilterBar
+              filter={filter}
+              now={now}
+              authors={authors}
+              onChange={setFilter}
+            />
+            <FilterPills filter={filter} now={now} onChange={setFilter} />
+            <HistoryStrip
+              repo={repo}
+              rev={resolved?.rev ?? ''}
+              path={path}
+              field={field}
+              range={range}
+              onPick={setRange}
+            />
+          </div>
+        </div>
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="px-4 pb-12">
@@ -186,8 +191,8 @@ export function CommitsView({
                 <h2
                   className={cn(
                     'sticky z-[1] flex items-center',
-                    'top-0 gap-2 px-2 pt-5 pb-2',
-                    'bg-background font-medium text-muted-foreground text-sm',
+                    'top-0 gap-2 px-1 pt-5 pb-1.5',
+                    'bg-background font-semibold text-base',
                   )}
                 >
                   <span className="whitespace-nowrap num">{g.day}</span>
@@ -196,7 +201,7 @@ export function CommitsView({
                     {g.commits.length === 1 ? 'commit' : 'commits'}
                   </Badge>
                 </h2>
-                <ul>
+                <ul className="rounded-2xl bg-island-muted p-1.5">
                   {g.commits.map((c) => (
                     <CommitRow
                       key={c.hash}
@@ -227,27 +232,31 @@ function ListSkeleton({
   return (
     <div aria-hidden>
       {header && (
-        <div className="flex items-center gap-2 px-2 pt-5 pb-2">
+        <div className="flex items-center gap-2 px-1 pt-5 pb-1.5">
           <div className="h-3.5 w-24 animate-pulse rounded-md bg-muted" />
           <div className="h-(--badge-h) w-16 animate-pulse rounded-md bg-muted" />
         </div>
       )}
-      {Array.from({ length: rows }, (_, i) => (
-        <div
-          // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder rows
-          key={i}
-          className="flex h-(--row-h) items-center gap-4 px-2"
-        >
+      <div
+        className={cn('rounded-2xl bg-island-muted p-1.5', !header && 'mt-5')}
+      >
+        {Array.from({ length: rows }, (_, i) => (
           <div
-            className="h-3.5 animate-pulse rounded-md bg-muted"
-            style={{ width: `${30 + ((i * 37) % 40)}%` }}
-          />
-          <div className="ml-auto hidden h-3.5 w-28 animate-pulse rounded-md bg-muted sm:block" />
-          <div className="h-3.5 w-20 animate-pulse rounded-md bg-muted" />
-          <div className="h-(--badge-h) w-16 animate-pulse rounded-md bg-muted" />
-          <div className="w-16" />
-        </div>
-      ))}
+            // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder rows
+            key={i}
+            className="flex h-(--row-h) items-center gap-4 px-2.5"
+          >
+            <div
+              className="h-3.5 animate-pulse rounded-md bg-muted"
+              style={{ width: `${30 + ((i * 37) % 40)}%` }}
+            />
+            <div className="ml-auto hidden h-3.5 w-28 animate-pulse rounded-md bg-muted sm:block" />
+            <div className="h-3.5 w-20 animate-pulse rounded-md bg-muted" />
+            <div className="h-(--badge-h) w-16 animate-pulse rounded-md bg-muted" />
+            <div className="w-16" />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -359,7 +368,7 @@ function CommitRow({
     <li
       className={cn(
         'group relative flex items-center rounded-lg',
-        'h-(--row-h) gap-4 px-2',
+        'h-(--row-h) gap-4 px-2.5',
         'transition-colors duration-75 hover:bg-hover',
       )}
     >

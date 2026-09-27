@@ -5,6 +5,7 @@ import { useId, useRef, useState } from 'react'
 import { cn } from '@/lib/cn'
 import { navKey, optionId, typeahead } from './listbox'
 import { ListSurface, OptionList, type RowOption } from './option-list'
+import { Tooltip } from './tooltip'
 import { useListNav } from './use-list-nav'
 
 const TYPEAHEAD_MS = 500
@@ -20,6 +21,8 @@ export function Select<T extends string>({
   align = 'start',
   className,
   trigger,
+  content,
+  tooltip,
 }: {
   value?: T
   onChange: (value: T) => void
@@ -32,6 +35,9 @@ export function Select<T extends string>({
   className?: string
   // trigger replaces the field look of the button, keeping its behavior
   trigger?: string
+  // content replaces the label and chevron inside the trigger button
+  content?: React.ReactNode
+  tooltip?: React.ReactNode
 }) {
   const listId = useId()
   const [open, setOpen] = useState(false)
@@ -77,27 +83,25 @@ export function Select<T extends string>({
     })
   }
 
-  return (
-    <Popover.Root open={open} onOpenChange={show}>
-      <div
-        className={cn('relative flex min-w-0', !trigger && 'h-9', className)}
+  const button = (
+    <Popover.Trigger asChild>
+      <button
+        type="button"
+        role="combobox"
+        aria-label={current ? `${label}, ${current.label}` : label}
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-haspopup="listbox"
+        className={cn(
+          'flex w-full min-w-0 items-center gap-2 whitespace-nowrap text-left',
+          'transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-ring',
+          trigger ??
+            'h-9 rounded-lg bg-island-muted px-3 hover:bg-hover data-[state=open]:bg-accent',
+          onClear && 'pr-14',
+        )}
       >
-        <Popover.Trigger asChild>
-          <button
-            type="button"
-            role="combobox"
-            aria-label={current ? `${label}, ${current.label}` : label}
-            aria-expanded={open}
-            aria-controls={listId}
-            aria-haspopup="listbox"
-            className={cn(
-              'flex w-full min-w-0 items-center gap-2 whitespace-nowrap text-left',
-              'transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-ring',
-              trigger ??
-                'h-9 rounded-lg bg-island-muted px-3 hover:bg-hover data-[state=open]:bg-accent',
-              onClear && 'pr-14',
-            )}
-          >
+        {content ?? (
+          <>
             {Icon && (
               <Icon
                 className={cn(
@@ -119,8 +123,24 @@ export function Select<T extends string>({
               className="size-3.5 shrink-0 text-faint opacity-70"
               aria-hidden
             />
-          </button>
-        </Popover.Trigger>
+          </>
+        )}
+      </button>
+    </Popover.Trigger>
+  )
+
+  return (
+    <Popover.Root open={open} onOpenChange={show}>
+      <div
+        className={cn('relative flex min-w-0', !trigger && 'h-9', className)}
+      >
+        {tooltip ? (
+          <Tooltip label={tooltip} side="bottom">
+            {button}
+          </Tooltip>
+        ) : (
+          button
+        )}
         {onClear && current && (
           <button
             type="button"

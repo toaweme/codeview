@@ -64,7 +64,7 @@ export function TreeView({
         <MoreMenu items={pathActions(repo, resolved, { kind: 'tree', path })} />
       </PathBar>
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto w-full max-w-[860px] px-6 pt-4 pb-16">
+        <div className="mx-auto w-full max-w-[860px] px-6 pt-6 pb-16">
           {!path && resolved && (
             <>
               <RepoSummary repo={repo} resolved={resolved} />

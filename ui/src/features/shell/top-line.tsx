@@ -16,7 +16,7 @@ export type LinkTarget =
 export type Crumb = {
   label: React.ReactNode
   link?: LinkTarget
-  // menu turns the crumb into a switcher between its siblings
+  // menu adds a switcher between the crumb's siblings next to its link
   menu?: CrumbMenu
   key: string
 }
@@ -29,7 +29,7 @@ export function TopLine({
   children?: React.ReactNode
 }) {
   return (
-    <div className="flex h-(--topbar-h) shrink-0 items-center gap-6 pr-3 pl-6">
+    <div className="topbar flex h-(--topbar-h) shrink-0 items-center gap-6 bg-band pr-3 pl-4">
       <nav
         aria-label="Breadcrumb"
         className="flex min-w-0 flex-1 items-center text-base"
@@ -41,44 +41,51 @@ export function TopLine({
             : i === 1
               ? 'shrink-[2] min-w-[4ch]'
               : 'shrink-[12] min-w-[2ch]'
+          const title = typeof c.label === 'string' ? c.label : undefined
+          // the current page is plain text, every other crumb with a target is a link
+          const name =
+            c.link && !last ? (
+              <Link
+                {...c.link}
+                title={title}
+                className={cn(
+                  CRUMB,
+                  'text-muted-foreground transition-colors duration-100 hover:bg-hover hover:text-foreground',
+                  !c.menu && grow,
+                )}
+              >
+                {c.label}
+              </Link>
+            ) : (
+              <span
+                title={title}
+                aria-current={last ? 'page' : undefined}
+                className={cn(
+                  CRUMB,
+                  last
+                    ? 'font-semibold text-foreground'
+                    : 'text-muted-foreground',
+                  !c.menu && grow,
+                )}
+              >
+                {c.label}
+              </span>
+            )
           return (
             <Fragment key={c.key}>
               {i > 0 && (
-                <span className="shrink-0 px-0.5 text-faint" aria-hidden>
-                  /
-                </span>
+                <span
+                  aria-hidden
+                  className="mx-1 h-3.5 w-px shrink-0 rotate-[18deg] rounded-full bg-faint/50"
+                />
               )}
               {c.menu ? (
-                <CrumbSwitch
-                  menu={c.menu}
-                  className={grow}
-                  trigger={cn(
-                    'gap-1 rounded-md px-2 py-1 hover:bg-hover hover:text-foreground data-[state=open]:bg-hover',
-                    last ? 'font-semibold' : 'text-muted-foreground',
-                  )}
-                />
-              ) : c.link && !last ? (
-                <Link
-                  {...c.link}
-                  title={typeof c.label === 'string' ? c.label : undefined}
-                  className={cn(
-                    'truncate rounded-md px-2 py-1 text-muted-foreground transition-colors duration-100 hover:bg-hover hover:text-foreground',
-                    grow,
-                  )}
-                >
-                  {c.label}
-                </Link>
-              ) : (
-                <span
-                  className={cn(
-                    'truncate px-2 py-1',
-                    last ? 'font-semibold' : 'text-muted-foreground',
-                    grow,
-                  )}
-                  aria-current={last ? 'page' : undefined}
-                >
-                  {c.label}
+                <span className={cn('flex min-w-0 items-center gap-0.5', grow)}>
+                  {name}
+                  <CrumbSwitch menu={c.menu} />
                 </span>
+              ) : (
+                name
               )}
             </Fragment>
           )
@@ -88,6 +95,9 @@ export function TopLine({
     </div>
   )
 }
+
+const CRUMB =
+  'block h-7 min-w-0 truncate rounded-md px-1.5 leading-7 outline-none focus-visible:outline-2 focus-visible:outline-ring'
 
 export function Group({ children }: { children: React.ReactNode }) {
   return <div className="flex shrink-0 items-center gap-1.5">{children}</div>

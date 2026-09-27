@@ -26,7 +26,9 @@ export function Tooltip({
 }) {
   return (
     <T.Root disableHoverableContent>
-      <T.Trigger asChild>{children}</T.Trigger>
+      <T.Trigger asChild onFocus={skipPointerFocus}>
+        {children}
+      </T.Trigger>
       <T.Portal>
         <T.Content
           side={side}
@@ -43,4 +45,15 @@ export function Tooltip({
       </T.Portal>
     </T.Root>
   )
+}
+
+// skipPointerFocus keeps the tooltip shut when focus lands without the keyboard,
+// such as a popover handing focus back to its trigger after a click.
+// Radix skips its own open handler once this one prevents the default.
+function skipPointerFocus(e: React.FocusEvent<HTMLElement>) {
+  try {
+    if (!e.currentTarget.matches(':focus-visible')) e.preventDefault()
+  } catch {
+    // an engine without :focus-visible keeps the default behaviour
+  }
 }

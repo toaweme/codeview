@@ -4,6 +4,8 @@
   --canvas: hsl(213 22% 89%);
   --island: hsl(210 40% 99%);
   --island-muted: hsl(212 32% 95.5%);
+  --band: hsl(212 30% 96.8%);
+  --band-track: hsl(212 26% 92.5%);
   --background: var(--island);
   --foreground: hsl(215 30% 11%);
   --sidebar: var(--island);
@@ -46,7 +48,7 @@
   --gap: 8px;
 
   --row-h: 36px;
-  --topbar-h: 48px;
+  --topbar-h: 52px;
   --rail-w: 52px;
   --control-h: 32px;
   --badge-h: 22px;
@@ -77,6 +79,8 @@
   --canvas: hsl(220 22% 3%);
   --island: hsl(216 18% 8%);
   --island-muted: hsl(216 16% 11.5%);
+  --band: hsl(216 16% 10%);
+  --band-track: hsl(215 15% 13.5%);
   --background: var(--island);
   --foreground: hsl(210 25% 90%);
   --sidebar: var(--island);
@@ -145,6 +149,7 @@
   --color-canvas: var(--canvas);
   --color-island: var(--island);
   --color-island-muted: var(--island-muted);
+  --color-band: var(--band);
   --color-warn: var(--warn);
   --color-info: var(--info);
   --color-background: var(--background);
@@ -287,6 +292,11 @@
   .island {
     background-color: var(--island);
     border-radius: var(--island-radius);
+  }
+
+  /* muted tracks inside the header band step one shade deeper so they still read on its fill */
+  .topbar {
+    --island-muted: var(--band-track);
   }
 }
 

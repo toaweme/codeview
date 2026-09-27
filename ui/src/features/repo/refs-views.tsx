@@ -61,7 +61,7 @@ function RefsFrame({
         />
       </TopLine>
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-3 px-4 pt-2 pb-12 sm:px-6">
+        <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-3 px-4 pt-5 pb-12 sm:px-6">
           {children}
         </div>
       </div>

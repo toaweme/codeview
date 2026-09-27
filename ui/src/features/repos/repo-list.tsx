@@ -82,7 +82,7 @@ export function RepoList({ org }: { org?: string }) {
         />
       </TopLine>
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto flex max-w-[1440px] flex-col gap-10 px-4 pt-2 pb-12 sm:px-6">
+        <div className="mx-auto flex max-w-[1440px] flex-col gap-10 px-4 pt-5 pb-12 sm:px-6">
           {view === 'overview' ? (
             <OverviewTab org={org} scope={scope} repos={q} />
           ) : view === 'activity' ? (

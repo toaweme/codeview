@@ -538,7 +538,7 @@ function SummaryRow({
     <div
       className={cn(
         'flex shrink-0 items-center overflow-hidden rounded-xl',
-        'mx-3 mb-2 h-12 gap-2 px-1.5',
+        'mx-3 my-3 h-12 gap-2 px-1.5',
         'bg-island-muted',
       )}
     >

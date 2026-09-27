@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { ChevronsUpDown } from 'lucide-react'
 import { useMemo } from 'react'
 import { reposQuery } from '@/api/queries'
 import { Select } from '@/components/select'
@@ -11,15 +12,9 @@ export type CrumbMenu =
   | { kind: 'org'; org: string }
   | { kind: 'repo'; repo: string }
 
-export function CrumbSwitch({
-  menu,
-  className,
-  trigger,
-}: {
-  menu: CrumbMenu
-  className?: string
-  trigger: string
-}) {
+// CrumbSwitch is the icon button after a crumb name that switches to a sibling
+// group or repository.
+export function CrumbSwitch({ menu }: { menu: CrumbMenu }) {
   const q = useQuery(reposQuery())
   const navigate = useNavigate()
   const names = useRepoNames()
@@ -49,9 +44,10 @@ export function CrumbSwitch({
         ...options,
       ]
 
+  const label = menu.kind === 'org' ? 'Switch group' : 'Switch repository'
   return (
     <Select
-      label={menu.kind === 'org' ? 'Switch group' : 'Switch repository'}
+      label={label}
       value={value}
       options={current}
       onChange={(v) =>
@@ -61,8 +57,10 @@ export function CrumbSwitch({
             : repoLink(v, { kind: 'tree', path: '' }),
         )
       }
-      className={className}
-      trigger={trigger}
+      className="shrink-0"
+      trigger="size-6 justify-center rounded-md text-faint hover:bg-hover hover:text-foreground data-[state=open]:bg-hover data-[state=open]:text-foreground"
+      content={<ChevronsUpDown className="size-3.5" aria-hidden />}
+      tooltip={label}
     />
   )
 }

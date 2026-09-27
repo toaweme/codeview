@@ -161,7 +161,7 @@ export function FileView({
         <BinaryFile path={path} rawUrl={rawUrl} size={blob.data.size} />
       ) : showRendered ? (
         <div className="min-h-0 flex-1 overflow-auto">
-          <div className="mx-auto w-full max-w-[860px] px-6 pt-4 pb-16">
+          <div className="mx-auto w-full max-w-[860px] px-6 pt-6 pb-16">
             {rendered.isPending ? (
               <Skeleton lines={16} className="px-0" />
             ) : (
@@ -344,7 +344,7 @@ function CodeLines({
             ref={codeRef}
             className="relative"
             style={{
-              height: virt.getTotalSize() + 16,
+              height: virt.getTotalSize() + 24,
               minWidth: '100%',
               width: `calc(${blameW}px + ${numW} + ${textWidth}px + 64px)`,
             }}
@@ -368,7 +368,7 @@ function CodeLines({
                   )}
                   style={{
                     height: ROW,
-                    transform: `translateY(${item.start + 8}px)`,
+                    transform: `translateY(${item.start + 12}px)`,
                   }}
                 >
                   {blameW > 0 && (
