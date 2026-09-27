@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/toaweme/http/server"
 	"github.com/toaweme/log"
 
 	"github.com/toaweme/codeview/internal/api"
@@ -24,9 +23,7 @@ func newServer(t *testing.T) (gittest.Fixture, http.Handler) {
 	f := gittest.New(t)
 	store := git.NewCLIStore(git.Config{Root: f.Root})
 	t.Cleanup(func() { _ = store.Close() })
-	r := server.NewRouter()
-	server.Register(r, api.New(store, markdown.NewGoldmark(), log.Discard()).Routes())
-	return f, r
+	return f, api.New(store, markdown.NewGoldmark(), log.Discard())
 }
 
 type params = map[string]string

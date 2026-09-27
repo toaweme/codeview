@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/toaweme/http/server"
 	"github.com/toaweme/log"
 
 	"github.com/toaweme/codeview/internal/api"
@@ -21,9 +20,7 @@ func newHistoryServer(t *testing.T) (gittest.History, http.Handler) {
 	f := gittest.NewHistory(t)
 	store := git.NewCLIStore(git.Config{Root: f.Root})
 	t.Cleanup(func() { _ = store.Close() })
-	r := server.NewRouter()
-	server.Register(r, api.New(store, markdown.NewGoldmark(), log.Discard()).Routes())
-	return f, r
+	return f, api.New(store, markdown.NewGoldmark(), log.Discard())
 }
 
 func pages(t *testing.T, h http.Handler, filter params) []string {

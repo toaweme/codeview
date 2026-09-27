@@ -28,52 +28,48 @@ const (
 	compareDirect     = "direct"
 )
 
-// Handler serves the API over a git store.
-type Handler struct {
+type handler struct {
 	store      git.Store
 	markdown   markdown.Renderer
 	logger     server.Logger
 	histograms *histogramCache
 }
 
-func New(store git.Store, md markdown.Renderer, logger server.Logger) *Handler {
-	return &Handler{store: store, markdown: md, logger: logger, histograms: newHistogramCache()}
+// New returns an http.Handler serving every path under /api.
+func New(store git.Store, md markdown.Renderer, logger server.Logger) http.Handler {
+	h := &handler{store: store, markdown: md, logger: logger, histograms: newHistogramCache()}
+	r := server.NewRouter()
+	r.Get("/api/repos", h.repos)
+	r.Get("/api/activity", h.activity)
+	r.Get("/api/refs", h.refs)
+	r.Get("/api/tree", h.tree)
+	r.Get("/api/blob", h.blob)
+	r.Get("/api/raw", h.raw)
+	r.Get("/api/render", h.render)
+	r.Get("/api/log", h.log)
+	r.Get("/api/log/histogram", h.histogram)
+	r.Get("/api/commit", h.commit)
+	r.Get("/api/compare", h.compare)
+	r.Get("/api/blame", h.blame)
+	r.Get("/api/*", h.notFound)
+	return cacheHeaders(r)
 }
 
-func (h *Handler) Routes() []server.Route {
-	get := func(pattern string, fn http.HandlerFunc) server.Route {
-		return server.Route{Method: http.MethodGet, Pattern: pattern, Handler: noStore(fn)}
-	}
-	return []server.Route{
-		get("/api/repos", h.repos),
-		get("/api/activity", h.activity),
-		get("/api/refs", h.refs),
-		get("/api/tree", h.tree),
-		get("/api/blob", h.blob),
-		get("/api/raw", h.raw),
-		get("/api/render", h.render),
-		get("/api/log", h.log),
-		get("/api/log/histogram", h.histogram),
-		get("/api/commit", h.commit),
-		get("/api/compare", h.compare),
-		get("/api/blame", h.blame),
-		get("/api/*", h.notFound),
-	}
-}
-
-func noStore(fn http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+// cacheHeaders keeps responses out of every cache,
+// since the same URL answers differently whenever a branch moves.
+func cacheHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		fn(w, r)
-	}
+		next.ServeHTTP(w, r)
+	})
 }
 
-func (h *Handler) notFound(w http.ResponseWriter, r *http.Request) {
+func (h *handler) notFound(w http.ResponseWriter, r *http.Request) {
 	server.WriteError(w, http.StatusNotFound, fmt.Errorf("endpoint %q does not exist", r.URL.Path))
 }
 
 // fail hides unexpected error detail, which can hold filesystem paths.
-func (h *Handler) fail(w http.ResponseWriter, r *http.Request, err error) {
+func (h *handler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, git.ErrNotFound):
 		server.WriteError(w, http.StatusNotFound, err)
@@ -87,7 +83,7 @@ func (h *Handler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	}
 }
 
-func (h *Handler) openRepo(r *http.Request) (git.Repo, error) {
+func (h *handler) openRepo(r *http.Request) (git.Repo, error) {
 	name := strings.Trim(r.URL.Query().Get("repo"), "/")
 	if name == "" {
 		return nil, fmt.Errorf("the repo parameter is required: %w", git.ErrInvalidArgument)
@@ -109,7 +105,7 @@ func (res resolved) document(p string) markdown.Document {
 	return markdown.Document{Repo: res.repo.Name(), Commit: res.commit, Path: p}
 }
 
-func (h *Handler) resolve(r *http.Request) (resolved, error) {
+func (h *handler) resolve(r *http.Request) (resolved, error) {
 	repo, err := h.openRepo(r)
 	if err != nil {
 		return resolved{}, err
@@ -129,7 +125,7 @@ func (h *Handler) resolve(r *http.Request) (resolved, error) {
 	return resolved{repo: repo, ref: ref, commit: commit}, nil
 }
 
-func (h *Handler) repos(w http.ResponseWriter, r *http.Request) {
+func (h *handler) repos(w http.ResponseWriter, r *http.Request) {
 	repos, err := h.store.List(r.Context())
 	if err != nil {
 		h.fail(w, r, fmt.Errorf("failed to list repositories: %w", err))
@@ -141,7 +137,7 @@ func (h *Handler) repos(w http.ResponseWriter, r *http.Request) {
 	server.WriteJSON(w, http.StatusOK, reposResponse{Repos: repos})
 }
 
-func (h *Handler) activity(w http.ResponseWriter, r *http.Request) {
+func (h *handler) activity(w http.ResponseWriter, r *http.Request) {
 	q := git.ActivityQuery{
 		Org:   r.URL.Query().Get("org"),
 		Repo:  r.URL.Query().Get("repo"),
@@ -167,7 +163,7 @@ func (h *Handler) activity(w http.ResponseWriter, r *http.Request) {
 	server.WriteJSON(w, http.StatusOK, act)
 }
 
-func (h *Handler) refs(w http.ResponseWriter, r *http.Request) {
+func (h *handler) refs(w http.ResponseWriter, r *http.Request) {
 	repo, err := h.openRepo(r)
 	if err != nil {
 		h.fail(w, r, err)
@@ -181,7 +177,7 @@ func (h *Handler) refs(w http.ResponseWriter, r *http.Request) {
 	server.WriteJSON(w, http.StatusOK, refs)
 }
 
-func (h *Handler) tree(w http.ResponseWriter, r *http.Request) {
+func (h *handler) tree(w http.ResponseWriter, r *http.Request) {
 	res, err := h.resolve(r)
 	if err != nil {
 		h.fail(w, r, err)
@@ -247,7 +243,7 @@ func pickReadme(entries []git.TreeEntry) string {
 	return best
 }
 
-func (h *Handler) blob(w http.ResponseWriter, r *http.Request) {
+func (h *handler) blob(w http.ResponseWriter, r *http.Request) {
 	res, err := h.resolve(r)
 	if err != nil {
 		h.fail(w, r, err)
@@ -267,7 +263,7 @@ func (h *Handler) blob(w http.ResponseWriter, r *http.Request) {
 	server.WriteJSON(w, http.StatusOK, resp)
 }
 
-func (h *Handler) render(w http.ResponseWriter, r *http.Request) {
+func (h *handler) render(w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Query().Get("path")
 	if !markdown.IsMarkdown(p) {
 		h.fail(w, r, fmt.Errorf("path %q is not a markdown file: %w", p, git.ErrInvalidArgument))
@@ -315,7 +311,7 @@ var rawTypes = map[string]bool{
 	"font/woff2":               true,
 }
 
-func (h *Handler) raw(w http.ResponseWriter, r *http.Request) {
+func (h *handler) raw(w http.ResponseWriter, r *http.Request) {
 	res, err := h.resolve(r)
 	if err != nil {
 		h.fail(w, r, err)
@@ -356,7 +352,7 @@ func (h *Handler) raw(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) commit(w http.ResponseWriter, r *http.Request) {
+func (h *handler) commit(w http.ResponseWriter, r *http.Request) {
 	repo, err := h.openRepo(r)
 	if err != nil {
 		h.fail(w, r, err)
@@ -384,7 +380,7 @@ func (h *Handler) commit(w http.ResponseWriter, r *http.Request) {
 	server.WriteJSON(w, http.StatusOK, commitResponse{Commit: c, Files: files})
 }
 
-func (h *Handler) compare(w http.ResponseWriter, r *http.Request) {
+func (h *handler) compare(w http.ResponseWriter, r *http.Request) {
 	repo, err := h.openRepo(r)
 	if err != nil {
 		h.fail(w, r, err)
@@ -494,7 +490,7 @@ func (h *Handler) compare(w http.ResponseWriter, r *http.Request) {
 	server.WriteJSON(w, http.StatusOK, resp)
 }
 
-func (h *Handler) blame(w http.ResponseWriter, r *http.Request) {
+func (h *handler) blame(w http.ResponseWriter, r *http.Request) {
 	res, err := h.resolve(r)
 	if err != nil {
 		h.fail(w, r, err)

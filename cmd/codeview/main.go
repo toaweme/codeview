@@ -94,7 +94,7 @@ func (c *ServeCommand) Run(_ cli.GlobalFlags, _ cli.Unknowns) error {
 
 	r := server.NewRouter()
 	r.Use(server.SlogMiddleware(server.SlogConfig{}, logger))
-	server.Register(r, api.New(store, markdown.NewGoldmark(), logger).Routes())
+	r.Handle(http.MethodGet, "/api/*", api.New(store, markdown.NewGoldmark(), logger))
 	r.Handle(http.MethodGet, "/*", webui.Handler(files))
 	r.Handle(http.MethodHead, "/*", webui.Handler(files))
 

@@ -124,7 +124,7 @@ func parseCursor(cursor string) (logCursor, error) {
 	return logCursor{start: parts[0], skip: skip, key: parts[2]}, nil
 }
 
-func (h *Handler) log(w http.ResponseWriter, r *http.Request) {
+func (h *handler) log(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	limit := defaultLogLimit
 	if s := q.Get("limit"); s != "" {
@@ -199,7 +199,7 @@ func (h *Handler) log(w http.ResponseWriter, r *http.Request) {
 	server.WriteJSON(w, http.StatusOK, resp)
 }
 
-func (h *Handler) histogram(w http.ResponseWriter, r *http.Request) {
+func (h *handler) histogram(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	filter, err := parseFilter(q)
 	if err != nil {
