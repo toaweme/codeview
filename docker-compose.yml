@@ -12,5 +12,15 @@ services:
       # codeview reads .data/soft-serve/repos from the host, never writing to it
       - ./.data/soft-serve:/soft-serve
 
+  # mirrors a few public GitHub repositories once, then exits
+  gickup:
+    image: ghcr.io/cooperspencer/gickup:0.10.47
+    restart: "no"
+    profiles: [mirror]
+    command: ["/gickup/conf.yml"]
+    volumes:
+      - ./dev/gickup.yml:/gickup/conf.yml:ro
+      - ./.data/gickup:/gickup/data
+
   # a database of codeview's own, for review state, lands here once it exists
   # db:

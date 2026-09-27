@@ -6,7 +6,6 @@ import {
   FolderGit2,
   GitBranch,
   Tag,
-  X,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ActivityBranch, ActivityCommit } from '@/api/types'
@@ -16,11 +15,13 @@ import { Tooltip } from '@/components/tooltip'
 import { cn } from '@/lib/cn'
 import { shortHash } from '@/lib/format'
 import { usePressPreload } from '@/lib/preload'
+import { repoBase, repoParent } from '@/lib/repo-name'
 import { dayKey, formatDay, formatFull, relativeTime } from '@/lib/time'
 import { repoLink } from '@/lib/url'
 import { releaseLink, shortRepo } from './activity-links'
 import { aheadLabel, type BranchGroups, behindLabel } from './branch-groups'
 import type { overviewLink } from './overview-nav'
+import { useRepoNames } from './use-repo-names'
 import { isBotBranch, type Release, type ReleaseGroup } from './versions'
 
 const ROW = [
@@ -51,15 +52,7 @@ export function Panel({
           {title}
         </h2>
         {more && (
-          <Link
-            {...more.link}
-            className={cn(
-              'shrink-0 whitespace-nowrap rounded-md px-2 py-1',
-              'text-muted-foreground text-sm transition-colors duration-100',
-              'hover:bg-hover hover:text-foreground',
-              'focus-visible:outline-2 focus-visible:outline-ring',
-            )}
-          >
+          <Link {...more.link} className={TEXT_LINK}>
             {more.label}
           </Link>
         )}
@@ -68,6 +61,14 @@ export function Panel({
     </section>
   )
 }
+
+// TEXT_LINK styles the quiet links beside section titles.
+export const TEXT_LINK = cn(
+  'shrink-0 whitespace-nowrap rounded-md px-2 py-1',
+  'text-muted-foreground text-sm transition-colors duration-100',
+  'hover:bg-hover hover:text-foreground',
+  'focus-visible:outline-2 focus-visible:outline-ring',
+)
 
 export function PanelEmpty({ children }: { children: React.ReactNode }) {
   return (
@@ -98,9 +99,10 @@ export function RowsSkeleton({ rows }: { rows: number }) {
 }
 
 function RepoBadge({ repo, org }: { repo: string; org?: string }) {
+  const names = useRepoNames()
   return (
     <Badge className="max-w-48 min-w-0">
-      <span className="truncate">{shortRepo(repo, org)}</span>
+      <span className="truncate">{shortRepo(repo, org, names.display)}</span>
     </Badge>
   )
 }
@@ -436,8 +438,6 @@ export function ReleaseList({
   ))
 }
 
-const PILLS_UP_TO = 3
-
 export function RepoFilter({
   repos,
   org,
@@ -451,70 +451,41 @@ export function RepoFilter({
   onChange: (next: string[]) => void
   counts?: ReadonlyMap<string, number>
 }) {
+  const names = useRepoNames()
   const options = useMemo(() => {
-    const orgs = new Set(repos.map((r) => r.slice(0, r.indexOf('/'))))
-    const grouped = !org && orgs.size > 1
+    const parents = new Set(repos.map(repoParent))
+    const grouped = parents.size > 1
     return repos
       .toSorted((a, b) => a.localeCompare(b))
       .map((r) => {
         const n = counts?.get(r)
         return {
           value: r,
-          label: grouped ? r.slice(r.indexOf('/') + 1) : shortRepo(r, org),
-          group: grouped ? r.slice(0, r.indexOf('/')) : undefined,
+          label: grouped ? repoBase(r) : shortRepo(r, org, names.display),
+          group: grouped
+            ? shortRepo(repoParent(r), org, names.display) || 'Ungrouped'
+            : undefined,
           keywords: [r],
           detail: n === undefined ? undefined : n.toLocaleString(),
         }
       })
-  }, [repos, org, counts])
+  }, [repos, org, counts, names])
   const picked = selected.filter((r) => repos.includes(r))
   if (repos.length < 2) return null
   return (
-    <>
-      <Combobox
-        multiple
-        icon={FolderGit2}
-        label="Repositories"
-        placeholder="Filter repositories"
-        all="All repositories"
-        count={(n) => `${n.toLocaleString()} repositories`}
-        value={picked}
-        onChange={onChange}
-        options={options}
-        empty="No repository matches."
-        className="w-52 min-w-32 shrink"
-      />
-      {picked.length > 0 && picked.length <= PILLS_UP_TO && (
-        <ul
-          aria-label="Picked repositories"
-          className="flex min-w-0 shrink-[2] gap-1.5 overflow-hidden"
-        >
-          {picked.map((r) => (
-            <li
-              key={r}
-              className={cn(
-                'flex h-7 min-w-0 shrink items-center gap-0.5 rounded-md',
-                'bg-primary/12 pr-0.5 pl-2.5 font-medium text-primary text-sm',
-              )}
-            >
-              <span className="min-w-0 truncate">{shortRepo(r, org)}</span>
-              <button
-                type="button"
-                aria-label={`Remove ${r}`}
-                onClick={() => onChange(picked.filter((x) => x !== r))}
-                className={cn(
-                  'grid size-6 shrink-0 place-items-center rounded-md',
-                  'transition-colors duration-100 hover:bg-primary/15',
-                  'focus-visible:outline-2 focus-visible:outline-ring',
-                )}
-              >
-                <X className="size-3.5" aria-hidden />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
+    <Combobox
+      multiple
+      icon={FolderGit2}
+      label="Repositories"
+      placeholder="Filter repositories"
+      all="All repositories"
+      count={(n) => `${n.toLocaleString()} repositories`}
+      value={picked}
+      onChange={onChange}
+      options={options}
+      empty="No repository matches."
+      className="w-52 min-w-32 shrink"
+    />
   )
 }
 

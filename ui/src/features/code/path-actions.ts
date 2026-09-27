@@ -3,23 +3,18 @@ import { apiUrl } from '@/api/client'
 import type { ResolvedRef } from '@/api/queries'
 import type { Crumb, MenuItem } from '@/features/shell/top-line'
 import { copyText } from '@/lib/clipboard'
+import { repoBase, repoParent } from '@/lib/repo-name'
 import { repoLink } from '@/lib/url'
 
 export function repoCrumbs(repo: string): Crumb[] {
-  const org = repo.slice(0, repo.indexOf('/'))
-  const name = repo.slice(repo.indexOf('/') + 1)
-  return [
-    {
-      key: 'org',
-      label: org,
-      menu: { kind: 'org', org },
-    },
-    {
-      key: 'repo',
-      label: name,
-      menu: { kind: 'repo', repo },
-    },
-  ]
+  const org = repoParent(repo)
+  const name: Crumb = {
+    key: 'repo',
+    label: repoBase(repo),
+    menu: { kind: 'repo', repo },
+  }
+  if (!org) return [name]
+  return [{ key: 'org', label: org, menu: { kind: 'org', org } }, name]
 }
 
 export function copyPageLink() {

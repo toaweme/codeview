@@ -1,4 +1,4 @@
-// Command codeview serves a read-only code browser over soft-serve repositories.
+// Command codeview serves a read-only code browser over a folder of git repositories.
 package main
 
 import (
@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -22,6 +22,7 @@ import (
 	"github.com/toaweme/codeview/internal/api"
 	"github.com/toaweme/codeview/internal/git"
 	"github.com/toaweme/codeview/internal/markdown"
+	"github.com/toaweme/codeview/internal/scan"
 	"github.com/toaweme/codeview/internal/webui"
 )
 
@@ -51,11 +52,11 @@ func main() {
 
 // ServeConfig holds the serve command's flags and environment.
 type ServeConfig struct {
-	Data  string `arg:"data" env:"CODEVIEW_DATA" default:".data/soft-serve" help:"soft-serve data directory, whose repos/ holds the bare repositories"`
-	Host  string `arg:"host" env:"CODEVIEW_HOST" default:"127.0.0.1" help:"Address to listen on"`
-	Port  int    `arg:"port" env:"CODEVIEW_PORT" default:"8080" help:"Port to listen on"`
-	UIDir string `arg:"ui-dir" env:"CODEVIEW_UI_DIR" help:"Serve the UI from this directory instead of the embedded build"`
-	Git   string `arg:"git" env:"CODEVIEW_GIT" default:"git" help:"git executable"`
+	Dir  string `arg:"dir" env:"CODEVIEW_DIR" default:"." help:"Folder holding the git repositories"`
+	Mode string `arg:"mode" env:"CODEVIEW_MODE" default:"public" help:"Which repositories to serve, public (holding git-daemon-export-ok) or all"`
+	Host string `arg:"host" env:"CODEVIEW_HOST" default:"127.0.0.1" help:"Address to listen on"`
+	Port int    `arg:"port" env:"CODEVIEW_PORT" default:"8080" help:"Port to listen on"`
+	Git  string `arg:"git" env:"CODEVIEW_GIT" default:"git" help:"git executable"`
 }
 
 // ServeCommand runs the HTTP server.
@@ -66,7 +67,7 @@ type ServeCommand struct {
 
 var _ cli.Command[ServeConfig] = (*ServeCommand)(nil)
 
-// NewServeCommand serves ui, which holds the UI build under ui/dist, unless --ui-dir overrides it.
+// NewServeCommand serves ui, which holds the UI build under ui/dist.
 func NewServeCommand(ui fs.FS) *ServeCommand { return &ServeCommand{ui: ui} }
 
 func (c *ServeCommand) Help() string { return "Serve the code browser" }
@@ -74,20 +75,43 @@ func (c *ServeCommand) Help() string { return "Serve the code browser" }
 func (c *ServeCommand) Run(_ cli.GlobalFlags, _ cli.Unknowns) error {
 	cfg := *c.Inputs
 	logger := log.Default()
-	root := filepath.Join(cfg.Data, "repos")
+	mode, err := git.ParseMode(cfg.Mode)
+	if err != nil {
+		return fmt.Errorf("failed to read the mode flag: %w", err)
+	}
+	scanner := scan.New(scan.Config{Dir: cfg.Dir, Logger: logger})
+	found, err := scanner.Locate(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to scan %q: %w", cfg.Dir, err)
+	}
+	public := 0
+	for _, loc := range found {
+		if loc.Public {
+			public++
+		}
+	}
 	logger.Info(
 		"service.booted",
 		"service", appName,
-		"repos", root,
+		"dir", cfg.Dir,
+		"mode", mode,
+		"repos", len(found),
+		"public", public,
 		"host", cfg.Host,
 		"port", cfg.Port,
-		"ui_dir", cfg.UIDir,
 	)
+	if mode == git.ModeAll && !isLoopback(cfg.Host) {
+		logger.Warn(
+			"service.unprotected",
+			"reason", "mode all serves every repository with no auth on a non-loopback host",
+			"host", cfg.Host,
+		)
+	}
 
-	store := git.NewCLIStore(git.Config{Root: root, Binary: cfg.Git})
+	store := git.NewCLIStore(git.Config{Locator: scanner, Mode: mode, Binary: cfg.Git})
 	defer store.Close()
 
-	files, err := webui.FS(cfg.UIDir, c.ui)
+	files, err := webui.FS(c.ui)
 	if err != nil {
 		return fmt.Errorf("failed to open the UI files: %w", err)
 	}
@@ -123,4 +147,12 @@ func (c *ServeCommand) Run(_ cli.GlobalFlags, _ cli.Unknowns) error {
 		return fmt.Errorf("failed to stop the server: %w", err)
 	}
 	return nil
+}
+
+func isLoopback(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }

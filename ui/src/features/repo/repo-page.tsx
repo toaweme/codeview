@@ -33,6 +33,7 @@ import { cn } from '@/lib/cn'
 import { type Command, useCommands } from '@/lib/commands'
 import { shortHash } from '@/lib/format'
 import { useKeys } from '@/lib/keymap'
+import { repoBase } from '@/lib/repo-name'
 import { type RepoLocation, type RepoView, repoLink } from '@/lib/url'
 import { usePersistedState } from '@/lib/use-persisted-state'
 import { RefSwitcher } from './ref-switcher'
@@ -63,7 +64,7 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
   )
 
   const linkRef = viewRef
-  const name = repo.slice(repo.indexOf('/') + 1)
+  const name = repoBase(repo)
   const isFile = view.kind === 'blob' || view.kind === 'blame'
 
   const goCode = () =>

@@ -14,6 +14,7 @@ import {
   RowsSkeleton,
 } from './activity-panels'
 import { useRepoFilter } from './use-repo-filter'
+import { useRepoNames } from './use-repo-names'
 import { buildReleases, byMonth, groupReleases } from './versions'
 
 type Grouping = 'month' | 'repo'
@@ -63,6 +64,7 @@ export function ReleasesTab({
   )
   const hidden = all.length - all.filter((r) => r.isVersion).length
 
+  const names = useRepoNames()
   const groups = useMemo(
     () =>
       grouping === 'month'
@@ -70,9 +72,9 @@ export function ReleasesTab({
         : groupReleases(
             releases,
             (r) => r.repo,
-            (r) => shortRepo(r.repo, org),
+            (r) => shortRepo(r.repo, org, names.display),
           ),
-    [releases, grouping, org],
+    [releases, grouping, org, names],
   )
 
   return (

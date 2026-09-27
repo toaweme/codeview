@@ -29,7 +29,7 @@ func Test_Handler(t *testing.T) {
 		{"client route", built, "/acme/widgets/tree/main/src", 200, "<html>app</html>", "no-store"},
 		{"asset", built, "/assets/app-1.js", 200, "console.log(1)", "public, max-age=31536000, immutable"},
 		{"static file", built, "/favicon.svg", 200, "<svg/>", ""},
-		{"not built", fstest.MapFS{}, "/", 503, "task ui:build", ""},
+		{"not built", fstest.MapFS{}, "/", 503, "task build", ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

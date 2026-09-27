@@ -5,18 +5,14 @@ import (
 	"errors"
 	"io/fs"
 	"net/http"
-	"os"
 	"path"
 	"strings"
 )
 
-const notBuilt = "the UI is not built, run `task ui:build` and rebuild, or serve with --ui-dir ui/dist\n"
+const notBuilt = "the UI is not built, run `task build`\n"
 
-// FS returns the UI files from dir, or ui/dist inside embedded when dir is empty.
-func FS(dir string, embedded fs.FS) (fs.FS, error) {
-	if dir != "" {
-		return os.DirFS(dir), nil
-	}
+// FS returns the UI build under ui/dist inside embedded.
+func FS(embedded fs.FS) (fs.FS, error) {
 	return fs.Sub(embedded, "ui/dist")
 }
 

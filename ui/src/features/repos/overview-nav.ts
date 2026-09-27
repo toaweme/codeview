@@ -1,4 +1,6 @@
-// tabs live in the query string because every path under /<org>/ names a repo
+import { groupLink } from '@/lib/url'
+
+// tabs live in the query string because every path under a group names a repo
 export const OVERVIEW_VIEWS = [
   'overview',
   'activity',
@@ -38,11 +40,5 @@ export function formatRepoFilter(repos: readonly string[]): string | undefined {
 
 export function overviewLink(org: string | undefined, view: OverviewView) {
   const search: OverviewSearch = view === 'overview' ? {} : { view }
-  return org
-    ? {
-        to: '/$org/$' as const,
-        params: { org, _splat: '' },
-        search,
-      }
-    : { to: '/' as const, search }
+  return org ? { ...groupLink(org), search } : { to: '/' as const, search }
 }

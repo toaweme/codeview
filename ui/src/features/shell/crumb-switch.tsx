@@ -3,7 +3,9 @@ import { useNavigate } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { reposQuery } from '@/api/queries'
 import { Select } from '@/components/select'
-import { repoLink, repoOrg } from '@/lib/url'
+import { useRepoNames } from '@/features/repos/use-repo-names'
+import { repoBase, repoParent } from '@/lib/repo-name'
+import { groupLink, repoLink } from '@/lib/url'
 
 export type CrumbMenu =
   | { kind: 'org'; org: string }
@@ -20,19 +22,21 @@ export function CrumbSwitch({
 }) {
   const q = useQuery(reposQuery())
   const navigate = useNavigate()
-  const org = menu.kind === 'org' ? menu.org : repoOrg(menu.repo)
+  const names = useRepoNames()
+  const org = menu.kind === 'org' ? menu.org : repoParent(menu.repo)
 
   const options = useMemo(() => {
-    const names = (q.data?.repos ?? []).map((r) => r.name)
+    const all = (q.data?.repos ?? []).map((r) => r.name)
     if (menu.kind === 'org')
-      return [...new Set(names.map(repoOrg))]
+      return [...new Set(all.map(repoParent))]
+        .filter(Boolean)
         .sort((a, b) => a.localeCompare(b))
-        .map((o) => ({ value: o, label: o }))
-    return names
-      .filter((n) => repoOrg(n) === org)
+        .map((o) => ({ value: o, label: names.display(o) }))
+    return all
+      .filter((n) => repoParent(n) === org)
       .sort((a, b) => a.localeCompare(b))
-      .map((n) => ({ value: n, label: n.slice(org.length + 1) }))
-  }, [q.data, menu.kind, org])
+      .map((n) => ({ value: n, label: repoBase(n) }))
+  }, [q.data, menu.kind, org, names])
 
   const value = menu.kind === 'org' ? menu.org : menu.repo
   const current = options.some((o) => o.value === value)
@@ -40,20 +44,20 @@ export function CrumbSwitch({
     : [
         {
           value,
-          label: menu.kind === 'org' ? value : value.slice(org.length + 1),
+          label: menu.kind === 'org' ? names.display(value) : repoBase(value),
         },
         ...options,
       ]
 
   return (
     <Select
-      label={menu.kind === 'org' ? 'Switch organization' : 'Switch repository'}
+      label={menu.kind === 'org' ? 'Switch group' : 'Switch repository'}
       value={value}
       options={current}
       onChange={(v) =>
         navigate(
           menu.kind === 'org'
-            ? { to: '/$org/$', params: { org: v, _splat: '' } }
+            ? groupLink(v)
             : repoLink(v, { kind: 'tree', path: '' }),
         )
       }

@@ -23,6 +23,7 @@ import { Keys, Shortcut } from '@/components/shortcut'
 import { cn } from '@/lib/cn'
 import { listCommands, onPaletteOpen } from '@/lib/commands'
 import { rankPaths } from '@/lib/fuzzy'
+import { repoNames, shiftPositions } from '@/lib/repo-name'
 import { relativeTime } from '@/lib/time'
 import { repoLink } from '@/lib/url'
 import { actionMatches } from './action-matches'
@@ -78,6 +79,10 @@ export function CommandPalette({
     enabled: open && !!repo && !!resolved,
   })
   const repos = useQuery({ ...reposQuery(), enabled: open })
+  const names = useMemo(
+    () => repoNames(repos.data?.repos.map((r) => r.name) ?? []),
+    [repos.data],
+  )
 
   const close = () => {
     setOpen(false)
@@ -161,14 +166,17 @@ export function CommandPalette({
       out.push({
         key: `p:${r.path}`,
         section: 'Repositories',
-        label: r.path,
-        positions: r.positions,
+        label: names.display(r.path),
+        positions: shiftPositions(
+          r.positions,
+          r.path.length - names.display(r.path).length,
+        ),
         icon: Book,
         run: () => navigate(repoLink(r.path, { kind: 'tree', path: '' })),
       })
     }
     return out
-  }, [open, deferred, files.data, refs, repos.data, repo, resolved])
+  }, [open, deferred, files.data, refs, repos.data, repo, resolved, names])
 
   const selected = items[sel]
   useEffect(() => {

@@ -102,12 +102,12 @@ export function RepoTile({
             <Link
               {...tagLink}
               {...preload(tagLink)}
-              className="relative z-[1] flex min-w-0 rounded-md outline-none focus-visible:outline-2 focus-visible:outline-ring"
+              className="relative z-[1] flex shrink-0 rounded-md outline-none focus-visible:outline-2 focus-visible:outline-ring"
             >
-              <Badge tone="info" className="min-w-0 hover:bg-info/22">
+              <Badge tone="info" className="hover:bg-info/22">
                 <Tag aria-hidden />
-                <span className="truncate">{tag.name}</span>
-                <span className="font-normal opacity-75">
+                <span>{tag.name}</span>
+                <span className="whitespace-nowrap font-normal opacity-75">
                   {relativeTime(tag.taggedAt)}
                 </span>
               </Badge>

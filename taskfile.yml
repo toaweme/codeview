@@ -2,6 +2,7 @@ version: '3'
 
 vars:
   DATA: .data/soft-serve
+  VIEW: .data/view
   GO_PKGS: ./...
 
 tasks:
@@ -46,3 +47,22 @@ tasks:
         cmd: |
           dest={{.DATA}}/repos/seed/$(basename {{.ITEM}}).git
           if [ -d "$dest" ]; then git --git-dir="$dest" fetch -q --prune origin; else git clone -q --mirror https://github.com/{{.ITEM}}.git "$dest"; fi
+
+  dev:mirror:
+    desc: Mirror the repositories dev/gickup.yml names into .data/gickup
+    cmds:
+      - mkdir -p .data/gickup
+      - docker compose run --rm gickup
+
+  dev:links:
+    desc: Combine soft-serve, gickup and a few GOPATH repositories into .data/view through symlinks
+    vars:
+      GOPATH_REPOS: cli log http
+      GOPATH:
+        sh: go env GOPATH
+    cmds:
+      - mkdir -p {{.VIEW}}/gopath {{.DATA}}/repos .data/gickup
+      - ln -sfn ../soft-serve/repos {{.VIEW}}/soft-serve
+      - ln -sfn ../gickup {{.VIEW}}/gickup
+      - for: { var: GOPATH_REPOS, split: ' ' }
+        cmd: ln -sfn {{.GOPATH}}/src/github.com/toaweme/{{.ITEM}} {{.VIEW}}/gopath/{{.ITEM}}

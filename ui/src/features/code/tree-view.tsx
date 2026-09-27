@@ -31,6 +31,7 @@ import { ErrorState, Skeleton } from '@/features/shell/states'
 import { MoreMenu } from '@/features/shell/top-line'
 import { cn } from '@/lib/cn'
 import { shortHash } from '@/lib/format'
+import { repoBase } from '@/lib/repo-name'
 import { formatFull, relativeTime } from '@/lib/time'
 import { repoLink } from '@/lib/url'
 import { pathActions } from './path-actions'
@@ -165,7 +166,7 @@ function RepoSummary({
   const log = useInfiniteQuery(logQuery(repo, resolved.rev, ''))
   const info = repos.data?.repos.find((r) => r.name === repo)
   const last = log.data?.pages[0]?.commits[0]
-  const name = repo.slice(repo.indexOf('/') + 1)
+  const name = repoBase(repo)
   const ref = resolved.isDefault ? undefined : resolved.name
 
   return (

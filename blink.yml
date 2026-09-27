@@ -1,12 +1,20 @@
 services:
   - name: soft-serve
     runtime: docker
+    docker:
+      services: [soft-serve]
+
+  # mirrors dev/gickup.yml once and links every source into .data/view
+  - name: gickup
+    commands:
+      run:
+        command: task dev:links dev:mirror
 
   - name: api
     runtime: go
     go:
       package: ./cmd/codeview
-      args: [serve, --data, .data/soft-serve, --port, "8080"]
+      args: [serve, --dir, .data/view, --mode, all, --port, "8080"]
     ports: [8080]
     reload:
       reload: true

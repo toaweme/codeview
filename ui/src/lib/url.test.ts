@@ -6,7 +6,8 @@ import {
   parseRepoSearch,
   type RepoView,
   repoHref,
-  repoSplat,
+  repoLink,
+  repoPath,
   splitRevision,
 } from './url'
 
@@ -51,7 +52,10 @@ describe('parseRepoPath', () => {
   ]
   for (const [name, splat, want] of cases) {
     test(name, () => {
-      const got = parseRepoPath('toaweme', splat)
+      const got = parseRepoPath(
+        `toaweme/${splat}`,
+        new Set(['toaweme/codeview']),
+      )
       if (want === null) {
         expect(got).toBeNull()
         return
@@ -61,7 +65,44 @@ describe('parseRepoPath', () => {
   }
 })
 
-describe('repoSplat round trip', () => {
+describe('parseRepoPath names', () => {
+  const known = new Set(['github.com/o/cli', 'seed/chi', 'seed', 'chi'])
+  const cases: [string, string, ReadonlySet<string> | undefined, string][] = [
+    ['host path', 'github.com/o/cli', known, 'github.com/o/cli'],
+    [
+      'host path with ref',
+      'github.com/o/cli@dev/tree/a',
+      known,
+      'github.com/o/cli',
+    ],
+    ['nested wins over parent', 'seed/chi', known, 'seed/chi'],
+    ['parent repo view', 'seed/blob/chi', known, 'seed'],
+    ['single segment', 'chi', known, 'chi'],
+    ['single segment at ref', 'chi@v1', known, 'chi'],
+    ['unknown stops at action', 'a/b/c/blob/x.go', undefined, 'a/b/c'],
+    ['unknown stops at ref', 'a/b/c@main/tree/x', undefined, 'a/b/c'],
+  ]
+  for (const [name, path, set, want] of cases) {
+    test(name, () => expect(parseRepoPath(path, set)?.repo).toBe(want))
+  }
+  test('a group path names no repository', () => {
+    expect(parseRepoPath('github.com/o', known)).toBeNull()
+    expect(parseRepoPath('github.com/o')).toBeNull()
+  })
+})
+
+test('repoLink splits the first segment into the org param', () => {
+  expect(repoLink('chi', { kind: 'tree', path: '' }).params).toEqual({
+    org: 'chi',
+    _splat: '',
+  })
+  expect(
+    repoLink('github.com/o/cli', { kind: 'blob', ref: 'main', path: 'a.go' })
+      .params,
+  ).toEqual({ org: 'github.com', _splat: 'o/cli@main/blob/a.go' })
+})
+
+describe('repoPath round trip', () => {
   const views: RepoView[] = [
     { kind: 'tree', path: '' },
     { kind: 'tree', ref: 'feature/x', path: 'a/b' },
@@ -78,8 +119,12 @@ describe('repoSplat round trip', () => {
   ]
   for (const v of views) {
     test(JSON.stringify(v), () => {
-      const splat = repoSplat('toaweme/codeview', v)
-      expect(parseRepoPath('toaweme', splat)?.view).toEqual(v)
+      for (const repo of ['toaweme/codeview', 'github.com/o/r', 'chi']) {
+        const path = repoPath(repo, v)
+        expect(parseRepoPath(path, new Set([repo]))).toEqual({ repo, view: v })
+        // a bare name reads as a group until the repository list is known
+        if (path !== repo) expect(parseRepoPath(path)?.view).toEqual(v)
+      }
     })
   }
 })
@@ -94,11 +139,11 @@ describe('compare revisions', () => {
   for (const [rev, splat, href] of cases) {
     test(rev, () => {
       const view: RepoView = { kind: 'compare', base: rev, head: 'main' }
-      expect(repoSplat('o/r', view)).toBe(`r/compare/${splat}...main`)
+      expect(repoPath('o/r', view)).toBe(`o/r/compare/${splat}...main`)
       expect(repoHref('o/r', view)).toBe(`/o/r/compare/${href}...main`)
       // the router hands the splat back percent-decoded
-      const back = decodeURIComponent(repoHref('o/r', view).slice(3))
-      expect(parseRepoPath('o', back)?.view).toEqual(view)
+      const back = decodeURIComponent(repoHref('o/r', view).slice(1))
+      expect(parseRepoPath(back)?.view).toEqual(view)
     })
   }
 })

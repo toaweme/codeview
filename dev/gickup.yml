@@ -1,0 +1,13 @@
+# gickup mirrors a few small public repositories into .data/gickup for the dev stack
+source:
+  github:
+    - user: charmbracelet
+      include:
+        - harmonica
+        - colorprofile
+        - log
+destination:
+  local:
+    - path: /gickup/data
+      structured: true
+      bare: true

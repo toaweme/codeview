@@ -57,7 +57,7 @@ func gitEnv() []string {
 func (r *cliRepo) command(ctx context.Context, args ...string) *exec.Cmd {
 	full := append([]string{
 		"--git-dir=" + r.dir,
-		// soft-serve's repositories belong to another user when mounted
+		// mirrored and mounted repositories often belong to another user
 		"-c", "safe.directory=*",
 		"-c", "core.quotePath=false",
 	}, args...)
@@ -111,7 +111,16 @@ func (r *cliRepo) Info(_ context.Context) (RepoInfo, error) {
 	return info, nil
 }
 
+// defaultBranch prefers the branch origin/HEAD names, which a working copy keeps
+// when its checkout moves, and falls back to the branch HEAD names.
 func (r *cliRepo) defaultBranch() (string, error) {
+	origin, err := os.ReadFile(filepath.Join(r.dir, "refs", "remotes", "origin", "HEAD"))
+	if err == nil {
+		target := strings.TrimSpace(string(origin))
+		if ref, ok := strings.CutPrefix(target, "ref: refs/remotes/origin/"); ok && ref != "" {
+			return ref, nil
+		}
+	}
 	b, err := os.ReadFile(filepath.Join(r.dir, "HEAD"))
 	if err != nil {
 		return "", fmt.Errorf("failed to read HEAD: %w", err)
@@ -219,7 +228,14 @@ func (r *cliRepo) Resolve(_ context.Context, rev string) (string, error) {
 	name, suffix := "", ""
 	switch {
 	case rev == "":
-		candidates = []string{"HEAD"}
+		branch, err := r.defaultBranch()
+		if err != nil {
+			return "", err
+		}
+		if branch != "" {
+			candidates = append(candidates, "refs/heads/"+branch)
+		}
+		candidates = append(candidates, "HEAD")
 	default:
 		var err error
 		name, suffix, err = splitRev(rev)

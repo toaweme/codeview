@@ -8,12 +8,13 @@ import (
 
 	"github.com/toaweme/codeview/internal/git"
 	"github.com/toaweme/codeview/internal/git/gittest"
+	"github.com/toaweme/codeview/internal/scan"
 )
 
 func open(t *testing.T) (gittest.Fixture, git.Repo) {
 	t.Helper()
 	f := gittest.New(t)
-	store := git.NewCLIStore(git.Config{Root: f.Root})
+	store := git.NewCLIStore(git.Config{Locator: scan.New(scan.Config{Dir: f.Root}), Mode: git.ModeAll})
 	t.Cleanup(func() { _ = store.Close() })
 	repo, err := store.Open(context.Background(), f.Name)
 	if err != nil {
@@ -24,7 +25,7 @@ func open(t *testing.T) (gittest.Fixture, git.Repo) {
 
 func Test_CLIStore_List(t *testing.T) {
 	f := gittest.New(t)
-	store := git.NewCLIStore(git.Config{Root: f.Root})
+	store := git.NewCLIStore(git.Config{Locator: scan.New(scan.Config{Dir: f.Root}), Mode: git.ModeAll})
 	defer store.Close()
 	repos, err := store.List(context.Background())
 	if err != nil {
@@ -44,7 +45,7 @@ func Test_CLIStore_List(t *testing.T) {
 
 func Test_CLIStore_Open(t *testing.T) {
 	f := gittest.New(t)
-	store := git.NewCLIStore(git.Config{Root: f.Root})
+	store := git.NewCLIStore(git.Config{Locator: scan.New(scan.Config{Dir: f.Root}), Mode: git.ModeAll})
 	defer store.Close()
 	tests := []struct {
 		name string

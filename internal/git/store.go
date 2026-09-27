@@ -8,22 +8,32 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 )
 
+// DefaultRescan is how long a Store trusts its last scan before locating repositories again.
+const DefaultRescan = 30 * time.Second
+
 type Config struct {
-	// Root is soft-serve's "<data>/repos", where repositories may nest as "org/name.git".
-	Root        string
+	Locator Locator
+	// Mode defaults to ModePublic.
+	Mode        Mode
 	Binary      string
 	IdleTimeout time.Duration
-	Now         func() time.Time
+	// Rescan defaults to DefaultRescan.
+	Rescan time.Duration
+	Now    func() time.Time
 }
 
-// CLIStore reads bare repositories under a root directory with the git CLI.
+// CLIStore reads the repositories its Locator finds with the git CLI.
 type CLIStore struct {
 	cfg Config
+
+	locMu     sync.Mutex
+	locs      map[string]Location
+	names     []string
+	scannedAt time.Time
 
 	mu    sync.Mutex
 	repos map[string]*cliRepo
@@ -38,8 +48,14 @@ func NewCLIStore(cfg Config) *CLIStore {
 	if cfg.Binary == "" {
 		cfg.Binary = "git"
 	}
+	if cfg.Mode == "" {
+		cfg.Mode = ModePublic
+	}
 	if cfg.IdleTimeout == 0 {
 		cfg.IdleTimeout = 5 * time.Minute
+	}
+	if cfg.Rescan == 0 {
+		cfg.Rescan = DefaultRescan
 	}
 	if cfg.Now == nil {
 		cfg.Now = time.Now
@@ -48,7 +64,7 @@ func NewCLIStore(cfg Config) *CLIStore {
 }
 
 func (s *CLIStore) List(ctx context.Context) ([]RepoSummary, error) {
-	names, err := s.discover()
+	locs, names, err := s.located(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -59,57 +75,67 @@ func (s *CLIStore) List(ctx context.Context) ([]RepoSummary, error) {
 	list := make([]RepoSummary, len(summaries))
 	for i, sum := range summaries {
 		list[i] = sum.summary
+		loc := locs[names[i]]
+		list[i].WorkTree = loc.WorkTree
 	}
 	return list, nil
 }
 
-func (s *CLIStore) discover() ([]string, error) {
-	var names []string
-	err := filepath.WalkDir(s.cfg.Root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			if path == s.cfg.Root && errors.Is(err, fs.ErrNotExist) {
-				return fs.SkipAll
-			}
-			return err
-		}
-		if !d.IsDir() || path == s.cfg.Root {
-			return nil
-		}
-		if strings.HasPrefix(d.Name(), ".") {
-			return fs.SkipDir
-		}
-		if !strings.HasSuffix(d.Name(), ".git") {
-			return nil
-		}
-		if _, err := os.Stat(filepath.Join(path, "HEAD")); err == nil {
-			rel, err := filepath.Rel(s.cfg.Root, path)
-			if err != nil {
-				return err
-			}
-			name := strings.TrimSuffix(filepath.ToSlash(rel), ".git")
-			if ValidateRepoName(name) == nil {
-				names = append(names, name)
-			}
-		}
-		return fs.SkipDir
-	})
+// located returns the repositories the mode serves, locating them again once the last scan is stale.
+func (s *CLIStore) located(ctx context.Context) (map[string]Location, []string, error) {
+	s.locMu.Lock()
+	defer s.locMu.Unlock()
+	if !s.scannedAt.IsZero() && time.Since(s.scannedAt) < s.cfg.Rescan {
+		return s.locs, s.names, nil
+	}
+	if s.cfg.Locator == nil {
+		return nil, nil, fmt.Errorf("failed to locate repositories: %w", errNoLocator)
+	}
+	found, err := s.cfg.Locator.Locate(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to scan repositories under %q: %w", s.cfg.Root, err)
+		return nil, nil, fmt.Errorf("failed to locate repositories: %w", err)
+	}
+	locs := make(map[string]Location, len(found))
+	names := make([]string, 0, len(found))
+	for _, loc := range found {
+		if s.cfg.Mode != ModeAll && !loc.Public {
+			continue
+		}
+		if _, ok := locs[loc.Name]; ok {
+			continue
+		}
+		locs[loc.Name] = loc
+		names = append(names, loc.Name)
 	}
 	sort.Strings(names)
-	return names, nil
+	for name := range s.locs {
+		if next, ok := locs[name]; !ok || next.GitDir != s.locs[name].GitDir {
+			s.forget(name)
+		}
+	}
+	s.locs, s.names, s.scannedAt = locs, names, time.Now()
+	return locs, names, nil
 }
 
-func (s *CLIStore) Open(_ context.Context, name string) (Repo, error) {
-	return s.open(name)
+var errNoLocator = errors.New("no locator configured")
+
+func (s *CLIStore) Open(ctx context.Context, name string) (Repo, error) {
+	return s.open(ctx, name)
 }
 
-func (s *CLIStore) open(name string) (*cliRepo, error) {
+func (s *CLIStore) open(ctx context.Context, name string) (*cliRepo, error) {
 	if err := ValidateRepoName(name); err != nil {
 		return nil, err
 	}
-	dir := filepath.Join(s.cfg.Root, filepath.FromSlash(name)+".git")
-	if _, err := os.Stat(filepath.Join(dir, "HEAD")); err != nil {
+	locs, _, err := s.located(ctx)
+	if err != nil {
+		return nil, err
+	}
+	loc, ok := locs[name]
+	if !ok {
+		return nil, fmt.Errorf("repository %q does not exist: %w", name, ErrNotFound)
+	}
+	if _, err := os.Stat(filepath.Join(loc.GitDir, "HEAD")); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			s.forget(name)
 			return nil, fmt.Errorf("repository %q does not exist: %w", name, ErrNotFound)
@@ -118,10 +144,12 @@ func (s *CLIStore) open(name string) (*cliRepo, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if r, ok := s.repos[name]; ok {
+	if r, ok := s.repos[name]; ok && r.dir == loc.GitDir {
 		return r, nil
+	} else if ok {
+		r.cat.Close()
 	}
-	r := newCLIRepo(name, dir, s.cfg.Binary, s.cfg.IdleTimeout)
+	r := newCLIRepo(name, loc.GitDir, s.cfg.Binary, s.cfg.IdleTimeout)
 	s.repos[name] = r
 	return r, nil
 }

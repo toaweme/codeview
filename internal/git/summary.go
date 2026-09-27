@@ -36,7 +36,7 @@ type repoSummary struct {
 }
 
 func (s *CLIStore) Activity(ctx context.Context, q ActivityQuery) (Activity, error) {
-	names, err := s.discover()
+	_, names, err := s.located(ctx)
 	if err != nil {
 		return Activity{}, err
 	}
@@ -110,7 +110,7 @@ func (s *CLIStore) summaries(ctx context.Context, names []string) ([]*repoSummar
 }
 
 func (s *CLIStore) summary(ctx context.Context, name string, end time.Time) (*repoSummary, error) {
-	repo, err := s.open(name)
+	repo, err := s.open(ctx, name)
 	if err != nil {
 		return nil, err
 	}

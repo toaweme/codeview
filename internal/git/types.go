@@ -1,9 +1,10 @@
-// Package git reads bare repositories for the code view.
+// Package git reads the repositories a Locator finds, bare or working copies.
 package git
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 )
@@ -13,7 +14,42 @@ var (
 	ErrInvalidArgument = errors.New("invalid argument")
 )
 
-// Store discovers repositories and opens them by name.
+// Location is a repository found on disk.
+type Location struct {
+	// Name identifies the repository in URLs, such as "github.com/toaweme/cli".
+	Name   string
+	GitDir string
+	// WorkTree marks a working copy, whose GitDir is its .git folder.
+	WorkTree bool
+	// Public marks a repository whose git dir holds git-daemon-export-ok.
+	Public bool
+}
+
+// Locator finds the repositories a Store serves.
+type Locator interface {
+	Locate(ctx context.Context) ([]Location, error)
+}
+
+// Mode picks which located repositories a Store serves.
+type Mode string
+
+const (
+	// ModePublic serves only public repositories.
+	ModePublic Mode = "public"
+	// ModeAll serves every located repository.
+	ModeAll Mode = "all"
+)
+
+// ParseMode rejects anything but "public" and "all".
+func ParseMode(s string) (Mode, error) {
+	switch m := Mode(s); m {
+	case ModePublic, ModeAll:
+		return m, nil
+	}
+	return "", fmt.Errorf("mode %q is not public or all: %w", s, ErrInvalidArgument)
+}
+
+// Store serves located repositories and opens them by name.
 type Store interface {
 	List(ctx context.Context) ([]RepoSummary, error)
 	Activity(ctx context.Context, q ActivityQuery) (Activity, error)
@@ -53,6 +89,7 @@ const ActivityWeeks = 12
 
 type RepoSummary struct {
 	RepoInfo
+	WorkTree    bool           `json:"workTree"`
 	LastCommit  *CommitSummary `json:"lastCommit"`
 	LatestTag   *Tag           `json:"latestTag"`
 	BranchCount int            `json:"branchCount"`

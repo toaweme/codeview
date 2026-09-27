@@ -9,12 +9,13 @@ import (
 
 	"github.com/toaweme/codeview/internal/git"
 	"github.com/toaweme/codeview/internal/git/gittest"
+	"github.com/toaweme/codeview/internal/scan"
 )
 
 func openHistory(t *testing.T) (gittest.History, git.Repo) {
 	t.Helper()
 	h := gittest.NewHistory(t)
-	store := git.NewCLIStore(git.Config{Root: h.Root})
+	store := git.NewCLIStore(git.Config{Locator: scan.New(scan.Config{Dir: h.Root}), Mode: git.ModeAll})
 	t.Cleanup(func() { _ = store.Close() })
 	repo, err := store.Open(context.Background(), h.Name)
 	if err != nil {

@@ -16,12 +16,13 @@ import (
 	"github.com/toaweme/codeview/internal/git"
 	"github.com/toaweme/codeview/internal/git/gittest"
 	"github.com/toaweme/codeview/internal/markdown"
+	"github.com/toaweme/codeview/internal/scan"
 )
 
 func newServer(t *testing.T) (gittest.Fixture, http.Handler) {
 	t.Helper()
 	f := gittest.New(t)
-	store := git.NewCLIStore(git.Config{Root: f.Root})
+	store := git.NewCLIStore(git.Config{Locator: scan.New(scan.Config{Dir: f.Root}), Mode: git.ModeAll})
 	t.Cleanup(func() { _ = store.Close() })
 	return f, api.New(store, markdown.NewGoldmark(), log.Discard())
 }
@@ -406,7 +407,8 @@ func Test_API_Blame(t *testing.T) {
 
 func Test_API_Summaries(t *testing.T) {
 	_, h := newServer(t)
-	repos := decode(t, get(h, "/api/repos", nil))["repos"].([]any)[0].(map[string]any)
+	list := decode(t, get(h, "/api/repos", nil))
+	repos := list["repos"].([]any)[0].(map[string]any)
 	act := decode(t, get(h, "/api/activity", nil))
 	tests := []struct {
 		name string
@@ -419,6 +421,7 @@ func Test_API_Summaries(t *testing.T) {
 			keys: []string{
 				"name",
 				"defaultBranch",
+				"workTree",
 				"lastCommit",
 				"latestTag",
 				"branchCount",

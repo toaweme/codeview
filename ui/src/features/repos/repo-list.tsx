@@ -9,7 +9,8 @@ import { AppShell } from '@/features/shell/app-shell'
 import { MoreMenu, TopLine } from '@/features/shell/top-line'
 import { copyText } from '@/lib/clipboard'
 import { cn } from '@/lib/cn'
-import { repoLink } from '@/lib/url'
+import { groupRepos, repoBase } from '@/lib/repo-name'
+import { groupLink, repoLink } from '@/lib/url'
 import { ActivityTab } from './activity-tab'
 import { BranchesTab } from './branches-tab'
 import {
@@ -19,6 +20,7 @@ import {
 } from './overview-nav'
 import { OverviewTab } from './overview-tab'
 import { ReleasesTab } from './releases-tab'
+import { useRepoNames } from './use-repo-names'
 
 const TABS: { value: OverviewView; label: string }[] = [
   { value: 'overview', label: 'Overview' },
@@ -32,6 +34,7 @@ export function RepoList({ org }: { org?: string }) {
   const view: OverviewView =
     parseOverviewSearch(useSearch({ strict: false })).view ?? 'overview'
   const navigate = useNavigate()
+  const names = useRepoNames()
 
   const scope = useMemo(
     () =>
@@ -52,7 +55,13 @@ export function RepoList({ org }: { org?: string }) {
             ? { key: 'all', label: 'Repositories', link: { to: '/' } }
             : { key: 'all', label: 'Repositories' },
           ...(org
-            ? [{ key: 'org', label: org, menu: { kind: 'org', org } as const }]
+            ? [
+                {
+                  key: 'org',
+                  label: names.display(org),
+                  menu: { kind: 'org', org } as const,
+                },
+              ]
             : []),
         ]}
       >
@@ -90,45 +99,46 @@ export function RepoList({ org }: { org?: string }) {
 }
 
 function RepoSidebar({ repos, org }: { repos: Repo[]; org?: string }) {
-  const byOrg = useMemo(() => {
-    const m = new Map<string, Repo[]>()
-    for (const r of [...repos].sort((a, b) => a.name.localeCompare(b.name))) {
-      const o = r.name.slice(0, r.name.indexOf('/'))
-      const list = m.get(o)
-      if (list) list.push(r)
-      else m.set(o, [r])
-    }
-    return [...m]
-  }, [repos])
+  const names = useRepoNames()
+  const groups = useMemo(
+    () => groupRepos([...repos].sort((a, b) => a.name.localeCompare(b.name))),
+    [repos],
+  )
   return (
     <div className="min-h-0 flex-1 overflow-auto px-2 pt-2 pb-3">
-      {byOrg.map(([o, list]) => (
-        <section key={o} className="mb-4">
-          <Link
-            to="/$org/$"
-            params={{ org: o, _splat: '' }}
-            className={cn(
-              'flex h-8 items-center rounded-lg px-2.5',
-              'font-medium text-faint text-sm transition-colors duration-75',
-              'hover:text-foreground',
-              o === org && 'text-foreground',
-            )}
-          >
-            {o}
-          </Link>
+      {groups.map(({ parent, repos: list }) => (
+        <section key={parent} className="mb-4">
+          {parent ? (
+            <Link
+              {...groupLink(parent)}
+              className={cn(
+                'flex h-8 items-center rounded-lg px-2.5',
+                'font-medium text-faint text-sm transition-colors duration-75',
+                'hover:text-foreground',
+                parent === org && 'text-foreground',
+              )}
+            >
+              <span className="truncate">{names.display(parent)}</span>
+            </Link>
+          ) : (
+            groups.length > 1 && (
+              <p className="flex h-8 items-center px-2.5 font-medium text-faint text-sm">
+                Ungrouped
+              </p>
+            )
+          )}
           {list.map((r) => (
             <Link
               key={r.name}
               {...repoLink(r.name, { kind: 'tree', path: '' })}
+              title={r.name}
               className={cn(
                 'flex h-(--row-h) items-center rounded-lg px-2.5',
                 'text-base text-muted-foreground transition-colors duration-75',
                 'hover:bg-hover hover:text-foreground',
               )}
             >
-              <span className="truncate">
-                {r.name.slice(r.name.indexOf('/') + 1)}
-              </span>
+              <span className="truncate">{repoBase(r.name)}</span>
             </Link>
           ))}
         </section>

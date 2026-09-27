@@ -1,4 +1,4 @@
-import { noop } from '@tanstack/react-query'
+import { noop, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import {
   activityQuery,
@@ -13,11 +13,20 @@ import {
   resolveRef,
   treeQuery,
 } from '@/api/queries'
+import type { RepoList as RepoListData } from '@/api/types'
 import { apiParams, parseHistoryFilter } from '@/features/commits/filters'
 import { RepoPage } from '@/features/repo/repo-page'
 import { parseOverviewSearch } from '@/features/repos/overview-nav'
 import { RepoList } from '@/features/repos/repo-list'
 import { parseRepoPath, parseRepoSearch } from '@/lib/url'
+
+// a repository name has any number of segments, so the known names decide
+// where the name ends and the view begins
+function repoNames(
+  list: RepoListData | undefined,
+): ReadonlySet<string> | undefined {
+  return list ? new Set(list.repos.map((r) => r.name)) : undefined
+}
 
 export const Route = createFileRoute('/$org/$')({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -30,10 +39,14 @@ export const Route = createFileRoute('/$org/$')({
     history: parseHistoryFilter(search),
   }),
   loader: async ({ context: { queryClient: qc }, params, deps }) => {
-    const loc = parseRepoPath(params.org, params._splat)
+    const path = [params.org, params._splat].filter(Boolean).join('/')
+    // a stale list still names the repositories, so only a cold cache waits
+    const list =
+      qc.getQueryData(reposQuery().queryKey) ??
+      (await qc.query(reposQuery()).catch(() => undefined))
+    const loc = parseRepoPath(path, repoNames(list))
     if (!loc) {
-      void qc.query(reposQuery()).catch(noop)
-      void qc.query(activityQuery(params.org)).catch(noop)
+      void qc.query(activityQuery(path)).catch(noop)
       return
     }
     const { repo, view } = loc
@@ -87,8 +100,10 @@ export const Route = createFileRoute('/$org/$')({
 function RepoRoute() {
   const { org, _splat } = Route.useParams()
   const { mode } = Route.useSearch()
-  const loc = parseRepoPath(org, _splat)
-  if (!loc) return <RepoList org={org} />
+  const list = useQuery(reposQuery()).data
+  const path = [org, _splat].filter(Boolean).join('/')
+  const loc = parseRepoPath(path, repoNames(list))
+  if (!loc) return <RepoList org={path} />
   if (loc.view.kind === 'compare' && mode) loc.view.mode = mode
   return <RepoPage loc={loc} />
 }

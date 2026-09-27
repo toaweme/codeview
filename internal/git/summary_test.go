@@ -10,13 +10,14 @@ import (
 
 	"github.com/toaweme/codeview/internal/git"
 	"github.com/toaweme/codeview/internal/git/gittest"
+	"github.com/toaweme/codeview/internal/scan"
 )
 
 func summaryStore(t *testing.T) (gittest.Fixture, *git.CLIStore) {
 	t.Helper()
 	f := gittest.New(t)
 	now := time.Date(2026, 1, 6, 12, 0, 0, 0, time.UTC)
-	store := git.NewCLIStore(git.Config{Root: f.Root, Now: func() time.Time { return now }})
+	store := git.NewCLIStore(git.Config{Locator: scan.New(scan.Config{Dir: f.Root}), Mode: git.ModeAll, Now: func() time.Time { return now }})
 	t.Cleanup(func() { _ = store.Close() })
 	return f, store
 }

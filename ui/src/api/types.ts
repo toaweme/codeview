@@ -11,7 +11,11 @@ export type Repo = {
   branchCount: number
   tagCount: number
   activity: number[]
+  workTree?: boolean
 }
+
+// RepoMode is `public` when only repositories exported to git-daemon are
+// served and `all` when every repository is, without authentication.
 
 export type RepoList = { repos: Repo[] }
 

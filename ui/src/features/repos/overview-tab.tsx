@@ -1,19 +1,35 @@
 import { type UseQueryResult, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Tag } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { activityQuery } from '@/api/queries'
 import type { Repo, RepoList } from '@/api/types'
 import { SearchInput } from '@/components/search-input'
-import { Button } from '@/components/ui/button'
 import { Empty, ErrorState } from '@/features/shell/states'
+import { cn } from '@/lib/cn'
 import { rankPaths } from '@/lib/fuzzy'
-import { repoLink } from '@/lib/url'
-import { CommitFeed, Panel, PanelEmpty, RowsSkeleton } from './activity-panels'
+import { groupRepos, repoBase, shiftPositions } from '@/lib/repo-name'
+import { groupLink, repoLink } from '@/lib/url'
+import { shortRepo } from './activity-links'
+import {
+  CommitFeed,
+  Panel,
+  PanelEmpty,
+  RowsSkeleton,
+  TEXT_LINK,
+} from './activity-panels'
 import { overviewLink } from './overview-nav'
 import { RepoTile, RepoTileSkeleton } from './repo-tile'
+import { useRepoNames } from './use-repo-names'
 
 const FEED_ROWS = 15
+
+const GRID = 'grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3'
+
+type Section = {
+  group?: string
+  label?: string
+  items: { repo: Repo; name: string; positions: number[] }[]
+}
 
 export function OverviewTab({
   org,
@@ -27,17 +43,52 @@ export function OverviewTab({
   const activity = useQuery(activityQuery(org))
   const [filter, setFilter] = useState('')
   const [sel, setSel] = useState<number | null>(null)
-  const listRef = useRef<HTMLUListElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
 
-  const results = useMemo(() => {
-    const byName = new Map(scope.map((r) => [r.name, r]))
-    return rankPaths(
-      filter,
-      scope.map((r) => r.name),
-      scope.length,
-    ).map((m) => ({ repo: byName.get(m.path) as Repo, positions: m.positions }))
-  }, [scope, filter])
+  const names = useRepoNames()
+  const sections = useMemo((): Section[] => {
+    const short = (name: string) => shortRepo(name, org, names.display)
+    if (filter) {
+      const byName = new Map(scope.map((r) => [r.name, r]))
+      const ranked = rankPaths(
+        filter,
+        scope.map((r) => r.name),
+        scope.length,
+      ).map((m) => ({
+        repo: byName.get(m.path) as Repo,
+        name: short(m.path),
+        positions: shiftPositions(
+          m.positions,
+          m.path.length - short(m.path).length,
+        ),
+      }))
+      return [{ items: ranked }]
+    }
+    const groups = groupRepos(scope)
+    const headed =
+      groups.length > 1 || (!!groups[0]?.parent && groups[0].parent !== org)
+    if (!headed)
+      return [
+        {
+          items: scope.map((r) => ({
+            repo: r,
+            name: short(r.name),
+            positions: [],
+          })),
+        },
+      ]
+    return groups.map((g) => ({
+      group: g.parent,
+      label: g.parent ? short(g.parent) : 'Ungrouped',
+      items: g.repos.map((r) => ({
+        repo: r,
+        name: repoBase(r.name),
+        positions: [],
+      })),
+    }))
+  }, [scope, filter, org, names])
+  const results = useMemo(() => sections.flatMap((s) => s.items), [sections])
 
   useEffect(() => {
     if (sel === null) return
@@ -77,12 +128,12 @@ export function OverviewTab({
             placeholder="Filter repositories"
             className="w-full max-w-72"
           />
-          <Button asChild variant="outline" size="md" className="ml-auto">
-            <Link {...overviewLink(org, 'releases')}>
-              <Tag aria-hidden />
-              All releases
-            </Link>
-          </Button>
+          <Link
+            {...overviewLink(org, 'releases')}
+            className={cn(TEXT_LINK, 'ml-auto')}
+          >
+            All releases
+          </Link>
         </div>
         {repos.isError ? (
           <ErrorState error={repos.error} />
@@ -91,34 +142,61 @@ export function OverviewTab({
             {filter ? 'No repository matches.' : 'No repositories yet.'}
           </Empty>
         ) : (
-          <ul
-            ref={listRef}
-            className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3"
-          >
-            {repos.isPending
-              ? Array.from({ length: 6 }, (_, i) => (
+          <div ref={listRef} className="flex flex-col gap-6">
+            {repos.isPending ? (
+              <ul className={GRID}>
+                {Array.from({ length: 6 }, (_, i) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder tiles
                   <RepoTileSkeleton key={i} />
-                ))
-              : results.map(({ repo, positions }, i) => (
-                  <RepoTile
-                    key={repo.name}
-                    repo={repo}
-                    name={org ? repo.name.slice(org.length + 1) : repo.name}
-                    positions={
-                      org
-                        ? positions
-                            .map((p) => p - org.length - 1)
-                            .filter((p) => p >= 0)
-                        : positions
-                    }
-                    selected={i === sel}
-                    onHover={() => setSel(i)}
-                    onLeave={() => setSel(null)}
-                    index={i}
-                  />
                 ))}
-          </ul>
+              </ul>
+            ) : (
+              sections.map((s, si) => {
+                const offset = sections
+                  .slice(0, si)
+                  .reduce((n, x) => n + x.items.length, 0)
+                return (
+                  <section key={s.group ?? ''} className="flex flex-col gap-3">
+                    {s.label !== undefined && (
+                      <h2 className="flex h-7 items-center font-medium text-muted-foreground">
+                        {s.group ? (
+                          <Link
+                            {...groupLink(s.group)}
+                            title={s.group}
+                            className="truncate rounded-md transition-colors duration-100 hover:text-foreground"
+                          >
+                            {s.label}
+                          </Link>
+                        ) : (
+                          s.label
+                        )}
+                        <span className="num pl-2 text-faint text-sm">
+                          {s.items.length}
+                        </span>
+                      </h2>
+                    )}
+                    <ul className={GRID}>
+                      {s.items.map(({ repo, name, positions }, j) => {
+                        const i = offset + j
+                        return (
+                          <RepoTile
+                            key={repo.name}
+                            repo={repo}
+                            name={name}
+                            positions={positions}
+                            selected={i === sel}
+                            onHover={() => setSel(i)}
+                            onLeave={() => setSel(null)}
+                            index={i}
+                          />
+                        )
+                      })}
+                    </ul>
+                  </section>
+                )
+              })
+            )}
+          </div>
         )}
       </section>
       <Panel

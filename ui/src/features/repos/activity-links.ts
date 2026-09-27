@@ -1,8 +1,15 @@
 import { repoLink } from '@/lib/url'
 import type { Release } from './versions'
 
-export function shortRepo(repo: string, org?: string): string {
-  return org && repo.startsWith(`${org}/`) ? repo.slice(org.length + 1) : repo
+// shortRepo names a repository relative to the group being viewed.
+export function shortRepo(
+  repo: string,
+  org: string | undefined,
+  display: (name: string) => string,
+): string {
+  return org && repo.startsWith(`${org}/`)
+    ? repo.slice(org.length + 1)
+    : display(repo)
 }
 
 export function releaseLink(r: Release) {
