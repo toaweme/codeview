@@ -12,8 +12,8 @@ import {
   parseISODate,
   rangeLabel,
 } from './filters'
+import { chooseBucket, padSlots, type Slot } from './histogram-buckets'
 
-const MAX_WEEKS = 156
 const BARS_H = 40
 const LABELS_H = 16
 
@@ -46,19 +46,20 @@ export function HistoryStrip({
     ...histogramQuery(repo, rev, path, 'week', dateField),
     enabled: !!rev,
   })
-  const long = (weeks.data?.buckets.length ?? 0) > MAX_WEEKS
-  const months = useQuery({
-    ...histogramQuery(repo, rev, path, 'month', dateField),
-    enabled: !!rev && long,
+  const bucket: Bucket | null = weeks.data
+    ? chooseBucket(weeks.data.buckets.length)
+    : null
+  const other = useQuery({
+    ...histogramQuery(repo, rev, path, bucket ?? 'month', dateField),
+    enabled: !!rev && !!bucket && bucket !== 'week',
   })
-  const bucket: Bucket = long ? 'month' : 'week'
-  const data = long ? months.data : weeks.data
-  const failed = weeks.isError || months.isError
+  const data = bucket === 'week' ? weeks.data : other.data
+  const failed = weeks.isError || other.isError
 
   if (failed) return null
   return (
     <div className="px-2 pt-3 pb-1" style={{ height: BARS_H + LABELS_H + 16 }}>
-      {data ? (
+      {data && bucket ? (
         data.buckets.length > 0 && (
           <Bars data={data} bucket={bucket} range={range} onPick={onPick} />
         )
@@ -108,8 +109,9 @@ function Bars({
     return () => ro.disconnect()
   }, [])
 
-  const buckets = data.buckets
+  const buckets: Slot[] = padSlots(data.buckets, bucket)
   const n = buckets.length
+  const offset = buckets.findIndex((b) => !b.pad)
   const slot = width / n
   const gap = slot >= 6 ? 2 : slot >= 3 ? 1 : 0
   const max = Math.max(1, ...buckets.map((b) => b.count))
@@ -122,7 +124,7 @@ function Bars({
     const rect = e.currentTarget.getBoundingClientRect()
     return Math.min(
       n - 1,
-      Math.max(0, Math.floor((e.clientX - rect.left) / slot)),
+      Math.max(offset, Math.floor((e.clientX - rect.left) / slot)),
     )
   }
   const finish = () => {
@@ -137,7 +139,7 @@ function Bars({
 
   const ticks: { x: number; label: string }[] = []
   let lastYear = -1
-  for (let i = 0; i < n; i++) {
+  for (let i = offset; i < n; i++) {
     const d = parseISODate(days[i]?.until ?? '')
     if (!d) continue
     const year = d.getFullYear()
@@ -145,7 +147,7 @@ function Bars({
     lastYear = year
     const x = i * slot
     const prev = ticks[ticks.length - 1]
-    if (i > 0 && (!prev || x - prev.x >= 44) && x < width - 36)
+    if (i > offset && (!prev || x - prev.x >= 44) && x < width - 36)
       ticks.push({ x, label: String(year) })
   }
 
@@ -175,7 +177,7 @@ function Bars({
 
   const first = data.first ? parseISODate(data.first.slice(0, 10)) : null
   const last = buckets[n - 1] ? parseISODate(days[n - 1]?.since ?? '') : null
-  const unit = bucket === 'month' ? 'month' : 'week'
+  const unit = bucket
 
   return (
     <div ref={box} className="relative select-none">
@@ -193,7 +195,8 @@ function Bars({
           }}
           onPointerMove={(e) => {
             const i = index(e)
-            setHover(i)
+            const x = e.clientX - e.currentTarget.getBoundingClientRect().left
+            setHover(x < offset * slot ? null : i)
             if (drag && drag.b !== i) setDrag({ a: drag.a, b: i })
           }}
           onPointerUp={finish}
