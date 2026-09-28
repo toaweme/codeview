@@ -26,6 +26,7 @@ import {
   ReleaseRow,
   RowsSkeleton,
 } from '@/features/repos/activity-panels'
+import { RepoGlyph } from '@/features/repos/repo-glyph'
 import { buildReleases } from '@/features/repos/versions'
 import { ErrorState, Skeleton } from '@/features/shell/states'
 import { MoreMenu } from '@/features/shell/top-line'
@@ -171,7 +172,12 @@ function RepoSummary({
 
   return (
     <section className="mb-8 rounded-xl bg-island-muted p-5">
-      <h1 className="font-semibold text-2xl tracking-tight">{name}</h1>
+      <div className="flex items-center gap-3">
+        <RepoGlyph name={repo} />
+        <h1 className="min-w-0 truncate font-semibold text-2xl tracking-tight">
+          {name}
+        </h1>
+      </div>
       {info?.description && (
         <p className="mt-1.5 max-w-[70ch] text-muted-foreground">
           {info.description}

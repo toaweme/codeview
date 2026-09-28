@@ -21,6 +21,7 @@ import { TreeView } from '@/features/code/tree-view'
 import { CommitPage } from '@/features/commit/commit-page'
 import { ComparePage } from '@/features/commit/compare-page'
 import { CommitsView } from '@/features/commits/commits-view'
+import { RepoGlyph } from '@/features/repos/repo-glyph'
 import {
   AppShell,
   type Section,
@@ -249,9 +250,10 @@ export function RepoPage({ loc }: { loc: RepoLocation }) {
         <Link
           {...repoLink(repo, { kind: 'tree', ref: linkRef, path: '' })}
           title={repo}
-          className="min-w-0 shrink truncate rounded-md font-semibold tracking-tight transition-colors duration-100 hover:text-primary"
+          className="flex min-w-0 shrink items-center gap-2 rounded-md font-semibold tracking-tight transition-colors duration-100 hover:text-primary"
         >
-          {name}
+          <RepoGlyph name={repo} size="sm" />
+          <span className="truncate">{name}</span>
         </Link>
         <div className="ml-auto flex min-w-0 shrink-[2] justify-end">
           {hasRef(view) ? (

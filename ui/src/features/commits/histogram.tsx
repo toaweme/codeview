@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { histogramQuery } from '@/api/queries'
 import type { Histogram } from '@/api/types'
 import { cn } from '@/lib/cn'
+import { spanLabel } from '@/lib/time'
 import {
   type Bucket,
   bucketDays,
@@ -10,7 +11,6 @@ import {
   type DateRange,
   overlaps,
   parseISODate,
-  rangeLabel,
 } from './filters'
 import { chooseBucket, padSlots, type Slot } from './histogram-buckets'
 
@@ -74,15 +74,19 @@ export function HistoryStrip({
   )
 }
 
-const ALWAYS_YEAR = new Date(0)
-
 function bucketLabel(start: string, bucket: Bucket): string {
   const days = bucketDays(start, bucket)
   if (bucket === 'month') {
     const d = parseISODate(days.since)
     return d ? monthFmt.format(d) : ''
   }
-  return rangeLabel(days, ALWAYS_YEAR)
+  return bucketSpan(days.since, days.until)
+}
+
+function bucketSpan(since?: string, until?: string): string {
+  const a = since ? parseISODate(since) : null
+  const b = until ? parseISODate(until) : null
+  return a && b ? spanLabel(a, b) : ''
 }
 
 function Bars({
@@ -158,10 +162,7 @@ function Bars({
       const count = buckets.slice(lo, hi + 1).reduce((s, b) => s + b.count, 0)
       tip = {
         x: (lo + hi + 1) * slot * 0.5,
-        title: rangeLabel(
-          { since: days[lo]?.since, until: days[hi]?.until },
-          ALWAYS_YEAR,
-        ),
+        title: bucketSpan(days[lo]?.since, days[hi]?.until),
         count,
       }
     } else {

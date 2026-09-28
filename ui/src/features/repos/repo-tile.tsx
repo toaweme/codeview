@@ -8,12 +8,13 @@ import { cn } from '@/lib/cn'
 import { usePressPreload } from '@/lib/preload'
 import { formatFull, relativeTime } from '@/lib/time'
 import { repoLink } from '@/lib/url'
+import { RepoGlyph } from './repo-glyph'
 import { Sparkline } from './sparkline'
 
 const TILE = 'rounded-2xl bg-island-muted p-4'
 
 // the translucent hover token would replace the fill and wash the tile out
-const RAISED =
+export const RAISED =
   'bg-[color-mix(in_oklab,var(--foreground)_4.5%,var(--island-muted))]'
 
 export function RepoTile({
@@ -52,6 +53,7 @@ export function RepoTile({
       onMouseLeave={onLeave}
     >
       <div className="flex items-start gap-3">
+        <RepoGlyph name={repo.name} className="mt-0.5" />
         <div className="min-w-0 flex-1">
           <Link
             {...home}
@@ -129,6 +131,7 @@ export function RepoTileSkeleton() {
   return (
     <li className={cn(TILE, 'flex flex-col gap-3')} aria-hidden>
       <div className="flex items-start gap-3">
+        <div className="mt-0.5 size-9 shrink-0 animate-pulse rounded-xl bg-muted" />
         <div className="min-w-0 flex-1">
           <div className="flex h-6 items-center">
             <div className="h-4 w-2/5 animate-pulse rounded-md bg-muted" />

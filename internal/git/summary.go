@@ -188,7 +188,11 @@ func (r *cliRepo) summarise(ctx context.Context, end time.Time) (*repoSummary, e
 		return nil, fmt.Errorf("failed to read repository info: %w", err)
 	}
 	sum := &repoSummary{
-		summary:  RepoSummary{RepoInfo: info, Activity: make([]int, ActivityWeeks)},
+		summary: RepoSummary{
+			RepoInfo:     info,
+			Activity:     make([]int, ActivityWeeks),
+			Contributors: []string{},
+		},
 		commits:  []ActivityCommit{},
 		tags:     []ActivityTag{},
 		branches: []ActivityBranch{},
@@ -283,7 +287,7 @@ func (r *cliRepo) summarise(ctx context.Context, end time.Time) (*repoSummary, e
 		c := recent.Commits[0]
 		sum.summary.LastCommit = &CommitSummary{Hash: c.Hash, Subject: c.Subject, Author: c.Author}
 	}
-	sum.summary.Activity, err = r.weeklyCommits(ctx, tip, end)
+	sum.summary.Activity, sum.summary.Contributors, err = r.weeklyCommits(ctx, tip, end)
 	if err != nil {
 		return nil, err
 	}
@@ -315,23 +319,35 @@ func (r *cliRepo) aheadBehind(ctx context.Context, base, head string) (int, int,
 	return ahead, behind, nil
 }
 
-func (r *cliRepo) weeklyCommits(ctx context.Context, tip string, end time.Time) ([]int, error) {
+func (r *cliRepo) weeklyCommits(ctx context.Context, tip string, end time.Time) ([]int, []string, error) {
 	start := end.Add(-ActivityWeeks * week)
 	out, err := r.run(
 		ctx,
 		"log",
-		"--format=%ct",
+		"--format=%ct%x00%ae",
 		"--since="+start.Format(time.RFC3339),
 		"--end-of-options",
 		tip,
 		"--",
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to count recent commits: %w", err)
+		return nil, nil, fmt.Errorf("failed to count recent commits: %w", err)
 	}
+	counts, contributors := tallyCommits(string(out), end)
+	return counts, contributors, nil
+}
+
+// tallyCommits buckets "unix-seconds NUL author-email" lines into weeks ending at end
+// and collects the distinct lowercased author emails of the last ContributorWeeks.
+func tallyCommits(out string, end time.Time) ([]int, []string) {
+	start := end.Add(-ActivityWeeks * week)
+	recent := end.Add(-ContributorWeeks * week)
 	counts := make([]int, ActivityWeeks)
-	for line := range strings.FieldsSeq(string(out)) {
-		sec, err := strconv.ParseInt(line, 10, 64)
+	seen := map[string]bool{}
+	contributors := []string{}
+	for line := range strings.SplitSeq(out, "\n") {
+		stamp, email, _ := strings.Cut(strings.TrimSpace(line), "\x00")
+		sec, err := strconv.ParseInt(stamp, 10, 64)
 		if err != nil {
 			continue
 		}
@@ -340,6 +356,13 @@ func (r *cliRepo) weeklyCommits(ctx context.Context, tip string, end time.Time) 
 			continue
 		}
 		counts[int(t.Sub(start)/week)]++
+		email = strings.ToLower(strings.TrimSpace(email))
+		if email == "" || t.Before(recent) || seen[email] {
+			continue
+		}
+		seen[email] = true
+		contributors = append(contributors, email)
 	}
-	return counts, nil
+	sort.Strings(contributors)
+	return counts, contributors
 }

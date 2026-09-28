@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { ageRatio, ageStep, relativeTime } from './time'
+import { ageRatio, ageStep, relativeTime, spanLabel } from './time'
 
 describe('relativeTime', () => {
   const now = Date.parse('2026-09-24T12:00:00Z')
@@ -37,5 +37,34 @@ describe('ageStep', () => {
   ]
   for (const [ratio, want] of cases) {
     test(String(ratio), () => expect(ageStep(ratio)).toBe(want))
+  }
+})
+
+describe('spanLabel', () => {
+  const now = new Date(2026, 8, 28)
+  const cases: [string, Date, Date, string][] = [
+    ['same month', new Date(2026, 8, 1), new Date(2026, 8, 7), '1 to 7 Sep'],
+    [
+      'across months',
+      new Date(2026, 7, 25),
+      new Date(2026, 8, 1),
+      '25 Aug to 1 Sep',
+    ],
+    ['one day', new Date(2026, 8, 3), new Date(2026, 8, 3), '3 Sep'],
+    [
+      'past year',
+      new Date(2025, 8, 1),
+      new Date(2025, 8, 7),
+      '1 to 7 Sep 2025',
+    ],
+    [
+      'across years',
+      new Date(2025, 11, 29),
+      new Date(2026, 0, 4),
+      '29 Dec 2025 to 4 Jan 2026',
+    ],
+  ]
+  for (const [name, since, until, want] of cases) {
+    test(name, () => expect(spanLabel(since, until, now)).toBe(want))
   }
 })

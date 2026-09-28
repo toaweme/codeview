@@ -96,6 +96,9 @@ export function RowsSkeleton({ rows }: { rows: number }) {
   )
 }
 
+// REPO_COLUMN_MAX keeps the column inside the badge's own max-w-48 cap
+const REPO_COLUMN_MAX = 24
+
 function RepoBadge({ repo, org }: { repo: string; org?: string }) {
   const names = useRepoNames()
   return (
@@ -145,6 +148,15 @@ export function CommitFeed({
   showRepo?: boolean
 }) {
   const preload = usePressPreload()
+  const names = useRepoNames()
+  // the repo column is as wide as its longest label so every subject starts at one edge
+  const repoWidth = useMemo(() => {
+    const longest = Math.max(
+      0,
+      ...commits.map((c) => shortRepo(c.repo, org, names.display).length),
+    )
+    return `calc(${Math.min(longest, REPO_COLUMN_MAX)}ch + 1rem)`
+  }, [commits, org, names])
   const groups = useMemo(() => {
     const out: { key: string; day: string; commits: ActivityCommit[] }[] = []
     for (const c of commits) {
@@ -171,7 +183,14 @@ export function CommitFeed({
           const link = repoLink(c.repo, { kind: 'commit', hash: c.hash })
           return (
             <li key={`${c.repo}@${c.hash}`} className={ROW}>
-              {showRepo && <RepoBadge repo={c.repo} org={org} />}
+              {showRepo && (
+                <span
+                  className="flex min-w-0 shrink-0 font-medium text-xs"
+                  style={{ width: repoWidth }}
+                >
+                  <RepoBadge repo={c.repo} org={org} />
+                </span>
+              )}
               <Link
                 {...link}
                 {...preload(link)}

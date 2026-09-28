@@ -47,6 +47,7 @@ func Test_CLIStore_List_Summary(t *testing.T) {
 		{"branch count", r.BranchCount, 2},
 		{"tag count", r.TagCount, 2},
 		{"activity", r.Activity, week},
+		{"contributors", r.Contributors, []string{"ada@example.com"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

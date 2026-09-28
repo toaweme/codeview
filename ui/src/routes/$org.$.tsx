@@ -1,5 +1,6 @@
 import { noop, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import {
   activityQuery,
   blameQuery,
@@ -17,6 +18,7 @@ import type { RepoList as RepoListData } from '@/api/types'
 import { apiParams, parseHistoryFilter } from '@/features/commits/filters'
 import { RepoPage } from '@/features/repo/repo-page'
 import { parseOverviewSearch } from '@/features/repos/overview-nav'
+import { recordRecent } from '@/features/repos/recents'
 import { RepoList } from '@/features/repos/repo-list'
 import { parseRepoPath, parseRepoSearch } from '@/lib/url'
 
@@ -103,6 +105,10 @@ function RepoRoute() {
   const list = useQuery(reposQuery()).data
   const path = [org, _splat].filter(Boolean).join('/')
   const loc = parseRepoPath(path, repoNames(list))
+  const repo = loc?.repo
+  useEffect(() => {
+    if (repo) recordRecent(repo)
+  }, [repo])
   if (!loc) return <RepoList org={path} />
   if (loc.view.kind === 'compare' && mode) loc.view.mode = mode
   return <RepoPage loc={loc} />

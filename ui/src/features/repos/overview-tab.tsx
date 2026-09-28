@@ -9,7 +9,8 @@ import { cn } from '@/lib/cn'
 import { rankPaths } from '@/lib/fuzzy'
 import { GUIDE_URL } from '@/lib/links'
 import { groupRepos, repoBase, shiftPositions } from '@/lib/repo-name'
-import { groupLink, repoLink } from '@/lib/url'
+import { repoLink } from '@/lib/url'
+import { usePersistedState } from '@/lib/use-persisted-state'
 import { shortRepo } from './activity-links'
 import {
   CommitFeed,
@@ -18,7 +19,10 @@ import {
   RowsSkeleton,
   TEXT_LINK,
 } from './activity-panels'
+import { OrgStrip } from './org-strip'
+import { indexLayouts, layoutGroup } from './overview-layout'
 import { overviewLink } from './overview-nav'
+import { QuietList } from './quiet-list'
 import { RepoTile, RepoTileSkeleton } from './repo-tile'
 import { useRepoNames } from './use-repo-names'
 
@@ -26,10 +30,17 @@ const FEED_ROWS = 15
 
 const GRID = 'grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3'
 
+type Item = { repo: Repo; name: string; positions: number[] }
+
 type Section = {
   group?: string
   label?: string
-  items: { repo: Repo; name: string; positions: number[] }[]
+  repos: Repo[]
+  active: Item[]
+  quiet: Item[]
+  quietTotal: number
+  hidden: number
+  offset: number
 }
 
 export function OverviewTab({
@@ -48,7 +59,11 @@ export function OverviewTab({
   const navigate = useNavigate()
 
   const names = useRepoNames()
-  const sections = useMemo((): Section[] => {
+  const [expanded, setExpanded] = usePersistedState<Record<string, boolean>>(
+    'overview:quiet-expanded',
+    {},
+  )
+  const { sections, results } = useMemo(() => {
     const short = (name: string) => shortRepo(name, org, names.display)
     if (filter) {
       const byName = new Map(scope.map((r) => [r.name, r]))
@@ -64,32 +79,43 @@ export function OverviewTab({
           m.path.length - short(m.path).length,
         ),
       }))
-      return [{ items: ranked }]
+      const flat: Section = {
+        repos: scope,
+        active: ranked,
+        quiet: [],
+        quietTotal: 0,
+        hidden: 0,
+        offset: 0,
+      }
+      return { sections: [flat], results: ranked }
     }
+    const item = (r: Repo): Item => ({
+      repo: r,
+      name: repoBase(r.name),
+      positions: [],
+    })
     const groups = groupRepos(scope)
-    const headed =
-      groups.length > 1 || (!!groups[0]?.parent && groups[0].parent !== org)
-    if (!headed)
-      return [
-        {
-          items: scope.map((r) => ({
-            repo: r,
-            name: short(r.name),
-            positions: [],
-          })),
-        },
-      ]
-    return groups.map((g) => ({
-      group: g.parent,
-      label: g.parent ? short(g.parent) : 'Ungrouped',
-      items: g.repos.map((r) => ({
-        repo: r,
-        name: repoBase(r.name),
-        positions: [],
-      })),
-    }))
-  }, [scope, filter, org, names])
-  const results = useMemo(() => sections.flatMap((s) => s.items), [sections])
+    const layouts = groups.map((g) =>
+      layoutGroup(g.repos, expanded[g.parent] ?? false),
+    )
+    const { offsets } = indexLayouts(layouts)
+    const sections = groups.map(
+      (g, i): Section => ({
+        group: g.parent,
+        label: g.parent ? short(g.parent) : 'Ungrouped',
+        repos: g.repos,
+        active: layouts[i].active.map(item),
+        quiet: layouts[i].quiet.map(item),
+        quietTotal: layouts[i].quiet.length + layouts[i].hidden,
+        hidden: layouts[i].hidden,
+        offset: offsets[i],
+      }),
+    )
+    return {
+      sections,
+      results: sections.flatMap((s) => [...s.active, ...s.quiet]),
+    }
+  }, [scope, filter, org, names, expanded])
 
   useEffect(() => {
     if (sel === null) return
@@ -153,7 +179,7 @@ export function OverviewTab({
             />
           )
         ) : (
-          <div ref={listRef} className="flex flex-col gap-6">
+          <div ref={listRef} className="flex flex-col gap-10">
             {repos.isPending ? (
               <ul className={GRID}>
                 {Array.from({ length: 6 }, (_, i) => (
@@ -162,33 +188,19 @@ export function OverviewTab({
                 ))}
               </ul>
             ) : (
-              sections.map((s, si) => {
-                const offset = sections
-                  .slice(0, si)
-                  .reduce((n, x) => n + x.items.length, 0)
-                return (
-                  <section key={s.group ?? ''} className="flex flex-col gap-3">
-                    {s.label !== undefined && (
-                      <h2 className="flex h-7 items-center font-medium text-muted-foreground">
-                        {s.group ? (
-                          <Link
-                            {...groupLink(s.group)}
-                            title={s.group}
-                            className="truncate rounded-md transition-colors duration-100 hover:text-foreground"
-                          >
-                            {s.label}
-                          </Link>
-                        ) : (
-                          s.label
-                        )}
-                        <span className="num pl-2 text-faint text-sm">
-                          {s.items.length}
-                        </span>
-                      </h2>
-                    )}
+              sections.map((s) => (
+                <section key={s.group ?? ''} className="flex flex-col gap-4">
+                  {s.label !== undefined && (
+                    <OrgStrip
+                      group={s.group ?? ''}
+                      label={s.label}
+                      repos={s.repos}
+                    />
+                  )}
+                  {s.active.length > 0 && (
                     <ul className={GRID}>
-                      {s.items.map(({ repo, name, positions }, j) => {
-                        const i = offset + j
+                      {s.active.map(({ repo, name, positions }, j) => {
+                        const i = s.offset + j
                         return (
                           <RepoTile
                             key={repo.name}
@@ -203,9 +215,27 @@ export function OverviewTab({
                         )
                       })}
                     </ul>
-                  </section>
-                )
-              })
+                  )}
+                  {s.quiet.length > 0 && (
+                    <QuietList
+                      items={s.quiet}
+                      total={s.quietTotal}
+                      hidden={s.hidden}
+                      expanded={expanded[s.group ?? ''] ?? false}
+                      onToggle={() =>
+                        setExpanded((e) => {
+                          const key = s.group ?? ''
+                          return { ...e, [key]: !(e[key] ?? false) }
+                        })
+                      }
+                      offset={s.offset + s.active.length}
+                      sel={sel}
+                      onHover={setSel}
+                      onLeave={() => setSel(null)}
+                    />
+                  )}
+                </section>
+              ))
             )}
           </div>
         )}

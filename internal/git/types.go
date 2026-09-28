@@ -85,7 +85,10 @@ type RepoInfo struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-const ActivityWeeks = 12
+const (
+	ActivityWeeks    = 12
+	ContributorWeeks = 4
+)
 
 type RepoSummary struct {
 	RepoInfo
@@ -96,6 +99,9 @@ type RepoSummary struct {
 	TagCount    int            `json:"tag_count"`
 	// Activity holds weekly commit counts on the default branch, oldest first.
 	Activity []int `json:"activity"`
+	// Contributors lists the distinct lowercased author emails on the default branch
+	// over the last ContributorWeeks, sorted, so an org can dedupe across repositories.
+	Contributors []string `json:"contributors"`
 }
 
 type CommitSummary struct {

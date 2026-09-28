@@ -57,3 +57,22 @@ export function ageRatio(iso: string, oldest: number, newest: number): number {
   if (Number.isNaN(t) || newest <= oldest) return 1
   return Math.min(1, Math.max(0, (t - oldest) / (newest - oldest)))
 }
+
+const monthName = new Intl.DateTimeFormat('en', { month: 'short' })
+
+// spanLabel names a run of days day first, as "1 to 7 Sep" or "25 Aug to 1 Sep",
+// adding the year when the span leaves the current one.
+export function spanLabel(since: Date, until: Date, now = new Date()): string {
+  const year = now.getFullYear()
+  const withYear = since.getFullYear() !== year || until.getFullYear() !== year
+  const day = (d: Date, month: boolean, y: boolean) =>
+    [d.getDate(), month && monthName.format(d), y && d.getFullYear()]
+      .filter(Boolean)
+      .join(' ')
+  const sameYear = since.getFullYear() === until.getFullYear()
+  const sameMonth = sameYear && since.getMonth() === until.getMonth()
+  if (sameMonth && since.getDate() === until.getDate())
+    return day(since, true, withYear)
+  const head = day(since, !sameMonth, withYear && !sameYear)
+  return `${head} to ${day(until, true, withYear)}`
+}

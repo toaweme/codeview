@@ -59,6 +59,14 @@
   --warn: hsl(34 80% 36%);
   --info: hsl(205 70% 40%);
 
+  /* org dots, calm hues that never read as status */
+  --org-1: hsl(174 52% 36%);
+  --org-2: hsl(212 62% 48%);
+  --org-3: hsl(238 48% 56%);
+  --org-4: hsl(268 44% 56%);
+  --org-5: hsl(322 46% 52%);
+  --org-6: hsl(192 62% 40%);
+
   /* blame age, oldest first */
   --age-1: hsl(40 52% 89%);
   --age-2: hsl(39 54% 83%);
@@ -113,6 +121,13 @@
   --warn: hsl(38 85% 62%);
   --info: hsl(205 80% 68%);
 
+  --org-1: hsl(172 42% 56%);
+  --org-2: hsl(212 70% 68%);
+  --org-3: hsl(236 62% 74%);
+  --org-4: hsl(266 56% 74%);
+  --org-5: hsl(320 52% 72%);
+  --org-6: hsl(190 58% 60%);
+
   --age-1: hsl(30 28% 22%);
   --age-2: hsl(31 36% 27%);
   --age-3: hsl(32 44% 32%);
@@ -152,6 +167,12 @@
   --color-band: var(--band);
   --color-warn: var(--warn);
   --color-info: var(--info);
+  --color-org-1: var(--org-1);
+  --color-org-2: var(--org-2);
+  --color-org-3: var(--org-3);
+  --color-org-4: var(--org-4);
+  --color-org-5: var(--org-5);
+  --color-org-6: var(--org-6);
   --color-background: var(--background);
   --color-sidebar: var(--sidebar);
   --color-hover: var(--hover);

@@ -1,6 +1,7 @@
 export type Tag = { name: string; commit: string; tagged_at: string }
 
-// activity is commits per week over the last 12 weeks, oldest first
+// activity is commits per week over the last 12 weeks, oldest first.
+// contributors are the distinct author emails of the last 4 weeks.
 export type Repo = {
   name: string
   description: string
@@ -11,6 +12,7 @@ export type Repo = {
   branch_count: number
   tag_count: number
   activity: number[]
+  contributors?: string[]
   work_tree?: boolean
 }
 
