@@ -155,7 +155,7 @@ function SingleCombobox<T extends string>({
         <div
           ref={anchor}
           className={cn(
-            'relative flex h-9 min-w-0 items-center rounded-lg bg-island-muted',
+            'relative flex h-9 pointer-coarse:h-10 min-w-0 items-center rounded-lg bg-island-muted',
             'text-faint transition-colors duration-100',
             'focus-within:ring-2 focus-within:ring-ring/40 hover:text-muted-foreground',
             className,
@@ -309,7 +309,7 @@ function MultiCombobox<T extends string>({
           aria-haspopup="listbox"
           aria-expanded={open}
           className={cn(
-            'flex h-9 min-w-0 items-center gap-2 whitespace-nowrap rounded-lg',
+            'flex h-9 pointer-coarse:h-10 min-w-0 items-center gap-2 whitespace-nowrap rounded-lg',
             'bg-island-muted px-3 text-left transition-colors duration-100',
             'hover:bg-hover focus-visible:outline-2 focus-visible:outline-ring',
             'data-[state=open]:bg-accent',
@@ -348,7 +348,7 @@ function MultiCombobox<T extends string>({
         <div className="flex shrink-0 flex-col gap-1 p-1.5 pb-0">
           <div
             className={cn(
-              'relative flex h-9 items-center rounded-lg bg-island-muted',
+              'relative flex h-9 pointer-coarse:h-10 items-center rounded-lg bg-island-muted',
               'text-faint focus-within:ring-2 focus-within:ring-ring/40',
             )}
           >

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
   Code2,
   GitCompareArrows,
@@ -10,6 +10,7 @@ import {
   Search,
   Sun,
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import type { ResolvedRef } from '@/api/queries'
 import type { Refs } from '@/api/types'
 import { WithShortcut } from '@/components/shortcut'
@@ -19,6 +20,7 @@ import { openKeyboardHelp, openPalette, useCommands } from '@/lib/commands'
 import { type KeyId, useKeys } from '@/lib/keymap'
 import { useTheme } from '@/lib/theme-context'
 import { repoLink } from '@/lib/url'
+import { useMedia, WIDE } from '@/lib/use-media'
 import { usePersistedState } from '@/lib/use-persisted-state'
 import { CommandPalette } from './command-palette'
 import type { LinkTarget } from './top-line'
@@ -48,10 +50,31 @@ export function AppShell({
   refs?: Refs
   onRef?: (name: string) => void
 }) {
-  const [open, setOpen] = usePersistedState('sidebar:open', true)
+  const [pinned, setPinned] = usePersistedState('sidebar:open', true)
   const [width, setWidth] = usePersistedState('sidebar:width', DEFAULT_W)
+  const [drawer, setDrawer] = useState(false)
+  const wide = useMedia(WIDE)
   const { toggle: toggleTheme } = useTheme()
   const navigate = useNavigate()
+  const href = useRouterState({ select: (s) => s.location.href })
+
+  // the drawer covers the page, so following a link out of it shuts it
+  // biome-ignore lint/correctness/useExhaustiveDependencies: href is the trigger
+  useEffect(() => {
+    setDrawer(false)
+  }, [href, wide])
+
+  useEffect(() => {
+    if (!drawer) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawer(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [drawer])
+
+  const open = wide ? pinned : drawer
+  const setOpen = wide ? setPinned : setDrawer
 
   useKeys({
     'palette.files': () => openPalette(),
@@ -105,10 +128,10 @@ export function AppShell({
   }
 
   return (
-    <div className="flex h-full gap-(--gap) overflow-hidden bg-canvas p-(--gap) pl-0">
+    <div className="flex h-full flex-col gap-(--gap) overflow-hidden bg-canvas p-(--gap) pb-[max(var(--gap),env(safe-area-inset-bottom))] sm:flex-row sm:pb-(--gap) sm:pl-0">
       <nav
         aria-label="Main"
-        className="flex w-(--rail-w) shrink-0 flex-col items-center gap-1.5 pl-2"
+        className="order-last flex shrink-0 items-center gap-1 overflow-x-auto sm:order-none sm:w-(--rail-w) sm:flex-col sm:gap-1.5 sm:overflow-visible sm:pl-2"
       >
         <RailLink
           label="Repositories"
@@ -154,6 +177,7 @@ export function AppShell({
           label={open ? 'Hide sidebar' : 'Show sidebar'}
           shortcut="sidebar.toggle"
           onClick={() => setOpen((o) => !o)}
+          pressed={!wide && open}
         >
           <PanelLeft />
         </RailButton>
@@ -165,27 +189,54 @@ export function AppShell({
           label="Keyboard shortcuts"
           shortcut="help.open"
           onClick={openKeyboardHelp}
+          className="hidden sm:grid"
         >
           <Keyboard />
         </RailButton>
       </nav>
-      {open && (
-        <aside
-          className="island relative flex shrink-0 flex-col"
-          style={{ width }}
-        >
-          {sidebar}
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: pointer-only resize handle, width is also persisted */}
-          <div
-            onPointerDown={startDrag}
-            onDoubleClick={() => setWidth(DEFAULT_W)}
-            className="group/resize absolute inset-y-0 right-[calc(var(--gap)*-1)] z-10 flex w-(--gap) cursor-col-resize justify-center"
-          >
-            <span className="my-auto h-10 w-1 rounded-full bg-transparent transition-colors duration-100 group-hover/resize:bg-primary/50" />
-          </div>
-        </aside>
-      )}
-      <main className="island relative flex min-w-0 flex-1 flex-col overflow-hidden">
+      {wide
+        ? open && (
+            <aside
+              className="island relative flex shrink-0 flex-col"
+              style={{ width }}
+            >
+              {sidebar}
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: pointer-only resize handle, width is also persisted */}
+              <div
+                onPointerDown={startDrag}
+                onDoubleClick={() => setWidth(DEFAULT_W)}
+                className="group/resize absolute inset-y-0 right-[calc(var(--gap)*-1)] z-10 flex w-(--gap) cursor-col-resize justify-center"
+              >
+                <span className="my-auto h-10 w-1 rounded-full bg-transparent transition-colors duration-100 group-hover/resize:bg-primary/50" />
+              </div>
+            </aside>
+          )
+        : sidebar && (
+            <>
+              <button
+                type="button"
+                aria-label="Close sidebar"
+                tabIndex={-1}
+                onClick={() => setDrawer(false)}
+                className={cn(
+                  'fixed inset-0 z-40 cursor-default bg-black/40 transition-opacity duration-200',
+                  !open && 'pointer-events-none opacity-0',
+                )}
+              />
+              <aside
+                aria-label="Sidebar"
+                inert={!open}
+                className={cn(
+                  'island fixed inset-y-(--gap) left-(--gap) z-40 flex w-[min(340px,calc(100vw-48px))] flex-col',
+                  'shadow-[0_24px_60px_-12px_rgb(0_0_0/0.45)] transition-[translate,visibility] duration-200 ease-out',
+                  !open && 'invisible -translate-x-[calc(100%+var(--gap)*2)]',
+                )}
+              >
+                {sidebar}
+              </aside>
+            </>
+          )}
+      <main className="island relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {children}
       </main>
       <CommandPalette
@@ -199,7 +250,7 @@ export function AppShell({
 }
 
 const RAIL = [
-  'grid size-9 place-items-center rounded-lg',
+  'grid size-10 shrink-0 place-items-center rounded-lg sm:pointer-fine:size-9',
   'text-muted-foreground transition-colors duration-100',
   'hover:bg-island/60 hover:text-foreground',
   'focus-visible:outline-2 focus-visible:outline-ring',
@@ -210,11 +261,15 @@ function RailButton({
   label,
   shortcut,
   onClick,
+  pressed,
+  className,
   children,
 }: {
   label: string
   shortcut?: KeyId
   onClick: () => void
+  pressed?: boolean
+  className?: string
   children: React.ReactNode
 }) {
   return (
@@ -222,8 +277,9 @@ function RailButton({
       <button
         type="button"
         aria-label={label}
+        aria-pressed={pressed}
         onClick={onClick}
-        className={RAIL}
+        className={cn(RAIL, pressed && 'bg-island text-primary', className)}
       >
         {children}
       </button>

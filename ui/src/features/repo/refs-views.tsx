@@ -61,7 +61,7 @@ function RefsFrame({
         />
       </TopLine>
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-3 px-4 pt-5 pb-12 sm:px-6">
+        <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-3 px-3 pt-4 pb-12 sm:px-6 sm:pt-5">
           {children}
         </div>
       </div>
@@ -98,7 +98,7 @@ export function BranchesView({ repo }: { repo: string }) {
           value={sort}
           onChange={setSort}
           options={BRANCH_SORTS}
-          className="w-56 min-w-36 shrink"
+          className="min-w-0 flex-1 basis-40 sm:w-56 sm:min-w-36 sm:flex-none sm:shrink"
         />
       </FilterBar>
       <p className="flex flex-wrap gap-x-5 gap-y-1 px-1 text-faint text-sm">

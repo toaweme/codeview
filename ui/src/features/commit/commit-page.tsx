@@ -89,7 +89,7 @@ export function CommitHeader({
 }) {
   const coAuthored = c.committer.name !== c.author.name
   return (
-    <div className="max-w-5xl px-6 pt-4 pb-6">
+    <div className="max-w-5xl px-3 pt-4 pb-6 sm:px-6">
       <h1 className="font-semibold text-xl tracking-tight">{c.subject}</h1>
       {c.body.trim() && (
         <pre
@@ -104,52 +104,54 @@ export function CommitHeader({
       )}
       <div
         className={cn(
-          'flex flex-wrap items-center rounded-xl',
-          'mt-4 gap-x-6 gap-y-2 px-4 py-3',
+          'flex flex-col rounded-xl sm:flex-row sm:items-center',
+          'mt-4 gap-3 px-3 py-3 sm:px-4',
           'bg-island-muted text-muted-foreground text-sm',
         )}
       >
-        <span>
-          <span className="font-medium text-foreground">{c.author.name}</span>{' '}
-          <span title={formatFull(c.author.date)}>
-            {relativeTime(c.author.date)}
-          </span>
-        </span>
-        {coAuthored && (
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-2">
           <span>
-            committed by{' '}
-            <span className="font-medium text-foreground">
-              {c.committer.name}
-            </span>{' '}
-            <span title={formatFull(c.committer.date)}>
-              {relativeTime(c.committer.date)}
+            <span className="font-medium text-foreground">{c.author.name}</span>{' '}
+            <span title={formatFull(c.author.date)}>
+              {relativeTime(c.author.date)}
             </span>
           </span>
-        )}
-        {c.parents.length > 0 && (
+          {coAuthored && (
+            <span>
+              committed by{' '}
+              <span className="font-medium text-foreground">
+                {c.committer.name}
+              </span>{' '}
+              <span title={formatFull(c.committer.date)}>
+                {relativeTime(c.committer.date)}
+              </span>
+            </span>
+          )}
+          {c.parents.length > 0 && (
+            <span className="flex items-center gap-1.5">
+              {c.parents.length === 1 ? 'parent' : 'parents'}
+              {c.parents.map((p) => (
+                <Link
+                  key={p}
+                  {...repoLink(repo, { kind: 'commit', hash: p })}
+                  className="rounded-md transition-opacity duration-100 hover:opacity-75"
+                >
+                  <Badge>{shortHash(p)}</Badge>
+                </Link>
+              ))}
+            </span>
+          )}
           <span className="flex items-center gap-1.5">
-            {c.parents.length === 1 ? 'parent' : 'parents'}
-            {c.parents.map((p) => (
-              <Link
-                key={p}
-                {...repoLink(repo, { kind: 'commit', hash: p })}
-                className="rounded-md transition-opacity duration-100 hover:opacity-75"
-              >
-                <Badge>{shortHash(p)}</Badge>
-              </Link>
-            ))}
+            commit
+            <Badge tone="primary">{shortHash(c.hash)}</Badge>
+            <CopyButton text={c.hash} title="Copy full hash" what="Hash" />
           </span>
-        )}
-        <span className="flex items-center gap-1.5">
-          commit
-          <Badge tone="primary">{shortHash(c.hash)}</Badge>
-          <CopyButton text={c.hash} title="Copy full hash" what="Hash" />
-        </span>
+        </div>
         <Link
           {...repoLink(repo, { kind: 'tree', ref: c.hash, path: '' })}
           className={cn(
-            'flex shrink-0 items-center rounded-lg',
-            'ml-auto h-8 gap-2 px-3',
+            'flex shrink-0 items-center justify-center rounded-lg',
+            'h-8 gap-2 px-3 pointer-coarse:h-10',
             'whitespace-nowrap bg-background font-medium text-foreground text-sm',
             'transition-colors duration-100 hover:bg-hover',
           )}

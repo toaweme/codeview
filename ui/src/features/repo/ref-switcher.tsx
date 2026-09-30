@@ -67,7 +67,7 @@ export function RefSwitcher({
         type="button"
         aria-label={`Switch branch or tag, current ${label}`}
         className={cn(
-          'flex h-8 min-w-0 max-w-full items-center gap-1.5 rounded-lg',
+          'flex h-8 pointer-coarse:h-10 min-w-0 max-w-full items-center gap-1.5 rounded-lg',
           'bg-primary/12 px-2.5 font-medium text-primary text-sm transition-colors duration-100',
           'hover:bg-primary/18 focus-visible:outline-2 focus-visible:outline-ring',
           'data-[state=open]:bg-primary/18',

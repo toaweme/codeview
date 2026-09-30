@@ -212,8 +212,8 @@ export function CommandPalette({
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/30 dark:bg-black/50" />
         <Dialog.Content
           className={cn(
-            'fixed top-[12vh] left-1/2 z-50 -translate-x-1/2',
-            'flex max-h-[70vh] w-[min(720px,94vw)]',
+            'fixed top-2 left-1/2 z-50 -translate-x-1/2 sm:top-[12vh]',
+            'flex max-h-[min(70vh,calc(100dvh-16px))] w-[min(720px,calc(100vw-16px))]',
             'flex-col overflow-hidden rounded-2xl bg-island p-2',
             'shadow-[0_0_0_1px_var(--border),0_24px_64px_-12px_rgb(0_0_0/0.45)]',
             'focus:outline-none',
@@ -281,7 +281,7 @@ export function CommandPalette({
                     }}
                     onClick={() => run(it)}
                     className={cn(
-                      'flex h-(--row-h) w-full items-center gap-3 rounded-lg px-3 text-left',
+                      'flex h-(--row-h) w-full items-center gap-3 rounded-lg px-3 text-left pointer-coarse:h-11',
                       i === sel && 'bg-accent',
                     )}
                   >
@@ -314,11 +314,11 @@ export function CommandPalette({
                   ? resolved.name.slice(0, 10)
                   : resolved?.name}
               </span>
-              <span className="ml-auto flex items-center gap-1">
+              <span className="ml-auto flex items-center gap-1 pointer-coarse:hidden">
                 <Keys keys={['↑', '↓']} />
                 <span className="ml-1">move</span>
               </span>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 pointer-coarse:hidden">
                 <Keys keys={['↵']} />
                 <span className="ml-1">open</span>
               </span>

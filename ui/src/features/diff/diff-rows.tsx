@@ -71,7 +71,7 @@ function tokensFor(
 }
 
 const NUM =
-  'w-12 shrink-0 select-none pr-2.5 text-right font-sans text-xs text-faint/80 num'
+  'w-10 shrink-0 select-none pr-2 sm:w-12 sm:pr-2.5 text-right font-sans text-xs text-faint/80 num'
 
 const BG = {
   add: 'bg-add-bg',
@@ -105,7 +105,7 @@ export function DiffRow({ row, ctx }: { row: Row; ctx: RowContext }) {
             'bg-hunk-bg font-sans text-hunk-fg text-sm',
           )}
         >
-          <div className="flex w-24 shrink-0 justify-center">
+          <div className="flex w-20 shrink-0 justify-center sm:w-24">
             {canExpand && (
               <Tooltip
                 label={`Expand ${count} unchanged ${count === 1 ? 'line' : 'lines'}`}
@@ -185,6 +185,7 @@ export function DiffRow({ row, ctx }: { row: Row; ctx: RowContext }) {
       )
     }
     case 'expand':
+      if (row.gap.end === null) return <div className="h-9" aria-hidden />
       return (
         <div className="flex h-9 items-center font-sans text-hunk-fg text-sm">
           <button
@@ -379,7 +380,7 @@ export function FileHeader({
       <div
         className={cn(
           'group flex items-center rounded-lg',
-          'h-11 gap-2.5 pr-2 pl-1.5',
+          'h-11 gap-2 pr-1.5 pl-1 sm:gap-2.5 sm:pr-2 sm:pl-1.5',
           'bg-island-muted text-base',
         )}
       >
@@ -389,7 +390,7 @@ export function FileHeader({
           aria-label={open ? 'Collapse file' : 'Expand file'}
           className={cn(
             'grid shrink-0 place-items-center rounded-md',
-            'size-8',
+            'size-8 pointer-coarse:size-10',
             'text-faint',
             'transition-colors duration-100 hover:bg-hover hover:text-foreground',
           )}
@@ -419,8 +420,8 @@ export function FileHeader({
         <Counts add={f.additions} del={f.deletions} />
         <span
           className={cn(
-            'flex shrink-0 items-center',
-            'opacity-0',
+            'flex shrink-0 items-center max-sm:hidden',
+            'opacity-0 pointer-coarse:opacity-100',
             'transition-opacity duration-100 focus-within:opacity-100 group-hover:opacity-100',
           )}
         >
@@ -454,7 +455,7 @@ export function FileHeader({
             aria-pressed={viewed}
             className={cn(
               'flex items-center rounded-md',
-              'h-8 gap-2 px-2.5',
+              'h-8 shrink-0 gap-2 px-2.5 pointer-coarse:h-10',
               'text-muted-foreground text-sm',
               'transition-colors duration-100 hover:bg-hover hover:text-foreground',
               viewed && 'text-foreground',
@@ -470,7 +471,7 @@ export function FileHeader({
             >
               {viewed && <Check className="size-3" strokeWidth={3} />}
             </span>
-            Viewed
+            <span className="max-sm:hidden">Viewed</span>
           </button>
         </Tooltip>
       </div>

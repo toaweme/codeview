@@ -96,7 +96,7 @@ export function DiffFileList({
                   'transition-opacity duration-100',
                   isViewed
                     ? 'bg-primary shadow-none'
-                    : 'opacity-0 focus-visible:opacity-100 group-hover:opacity-100',
+                    : 'opacity-0 focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100',
                 )}
               >
                 {isViewed && <Check className="size-3" strokeWidth={3} />}

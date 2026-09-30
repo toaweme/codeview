@@ -28,7 +28,7 @@ export function authorLabel(a: { name: string; email: string }): string {
 export function BlameLegend({ blame }: { blame?: Blame }) {
   const people = useMemo(() => (blame ? contributors(blame) : []), [blame])
   return (
-    <div className="flex h-11 shrink-0 items-center justify-between gap-6 px-6 text-faint text-sm">
+    <div className="flex h-11 shrink-0 items-center justify-between gap-3 overflow-hidden px-3 text-faint text-sm sm:gap-6 sm:px-6">
       <div className="flex items-center gap-3">
         <span>Older</span>
         <span className="flex items-center gap-0.5" aria-hidden>
@@ -60,7 +60,7 @@ export function BlameLegend({ blame }: { blame?: Blame }) {
             ))}
           </span>
           <span className="flex items-center gap-2">
-            Contributors
+            <span className="max-sm:hidden">Contributors</span>
             <Badge>{people.length.toLocaleString()}</Badge>
           </span>
         </div>

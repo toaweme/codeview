@@ -49,6 +49,21 @@ const file: FileDiff = {
   ],
 }
 
+// same file with git's full three lines of trailing context, so the end of file is unknown
+const padded: FileDiff = {
+  ...file,
+  hunks: [
+    file.hunks[0],
+    {
+      ...file.hunks[1],
+      old_lines: 5,
+      new_lines: 5,
+      header: '@@ -19,5 +20,5 @@ func x()',
+      lines: [...file.hunks[1].lines, ctx(22, 23), ctx(23, 24)],
+    },
+  ],
+}
+
 const none = {
   collapsed: new Set<number>(),
   expanded: new Set<string>(),
@@ -57,10 +72,20 @@ const none = {
 
 describe('gapsFor', () => {
   test('between hunks and trailing', () => {
-    const g = gapsFor(file, 0)
+    const g = gapsFor(padded, 0)
     expect(g[0]).toEqual({ key: '0:0', start: 1, end: 4, oldOffset: 0 })
     expect(g[1]).toEqual({ key: '0:1', start: 8, end: 19, oldOffset: -1 })
-    expect(g[2]).toEqual({ key: '0:2', start: 23, end: null, oldOffset: -1 })
+    expect(g[2]).toEqual({ key: '0:2', start: 25, end: null, oldOffset: -1 })
+  })
+  test('no trailing gap when the file ends inside the hunk', () => {
+    const cases: [string, FileDiff][] = [
+      ['short trailing context', file],
+      ['added file', { ...padded, status: 'added' }],
+    ]
+    for (const [name, f] of cases) {
+      const g = gapsFor(f, 0)
+      expect(g[f.hunks.length], name).toBeNull()
+    }
   })
   test('no leading gap at line 1, no trailing gap at EOF', () => {
     const f: FileDiff = {
@@ -88,7 +113,7 @@ describe('pairChanges', () => {
 
 describe('buildRows', () => {
   test('unified', () => {
-    const r = buildRows([file], { mode: 'unified', ...none })
+    const r = buildRows([padded], { mode: 'unified', ...none })
     expect(r.rows.map((x) => x.kind)).toEqual([
       'file',
       'hunk',
@@ -96,6 +121,8 @@ describe('buildRows', () => {
       'line',
       'line',
       'hunk',
+      'line',
+      'line',
       'line',
       'line',
       'line',

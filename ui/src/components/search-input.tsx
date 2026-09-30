@@ -20,7 +20,7 @@ export function SearchInput({
   return (
     <div
       className={cn(
-        'relative flex h-9 items-center rounded-lg bg-island-muted',
+        'relative flex h-9 pointer-coarse:h-10 items-center rounded-lg bg-island-muted',
         'text-faint transition-colors duration-100',
         'focus-within:ring-2 focus-within:ring-ring/40 hover:text-muted-foreground',
         className,

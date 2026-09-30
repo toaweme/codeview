@@ -8,8 +8,21 @@ body,
   height: 100%;
 }
 
+#app {
+  height: 100dvh;
+}
+
 body {
   overflow: hidden;
+}
+
+/* iOS zooms into any field set below 16px when it takes focus */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

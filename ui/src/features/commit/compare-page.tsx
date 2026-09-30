@@ -284,7 +284,7 @@ function CompareForm({
 
   return (
     <div className="min-h-0 flex-1 overflow-auto px-4 sm:px-6">
-      <div className="mx-auto w-full max-w-[720px] pt-[12vh] pb-16">
+      <div className="mx-auto w-full max-w-[720px] pt-6 pb-16 sm:pt-[12vh]">
         <h1 className="text-center font-semibold text-2xl tracking-tight">
           Compare changes
         </h1>
@@ -668,7 +668,7 @@ function CommitList({
   const boundary = view.startingPoint ? data.boundary : null
   const listed = view.shape === 'forward' || view.shape === 'diverged'
   return (
-    <div className="max-w-5xl px-6 pt-3 pb-6">
+    <div className="max-w-5xl px-3 pt-3 pb-6 sm:px-6">
       <h1 className="min-w-0 truncate font-semibold text-xl tracking-tight">
         <Title from={from} to={to} view={view} />
       </h1>
@@ -815,7 +815,7 @@ function CommitRow({
     <li
       className={cn(
         'relative flex items-center rounded-lg',
-        'h-(--row-h) gap-4 px-2.5',
+        'h-(--row-h) gap-3 px-2.5 sm:gap-4 pointer-coarse:h-11',
         'whitespace-nowrap',
         'transition-colors duration-75 hover:bg-hover',
       )}
@@ -846,7 +846,7 @@ function CommitRow({
       </span>
       <span
         className={cn(
-          'w-28 shrink-0 truncate text-right text-faint text-sm',
+          'w-20 shrink-0 truncate text-right text-faint text-sm sm:w-28',
           dim,
         )}
       >

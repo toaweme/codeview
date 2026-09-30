@@ -29,13 +29,15 @@ export function TopLine({
   children?: React.ReactNode
 }) {
   return (
-    <div className="topbar flex h-(--topbar-h) shrink-0 items-center gap-6 bg-band pr-3 pl-4">
+    <div className="topbar flex h-(--topbar-h) shrink-0 items-center gap-3 bg-band pr-2 pl-2 sm:gap-6 sm:pr-3 sm:pl-4">
       <nav
         aria-label="Breadcrumb"
         className="flex min-w-0 flex-1 items-center text-base"
       >
         {crumbs.map((c, i) => {
           const last = i === crumbs.length - 1
+          // a phone keeps only the parent and the current crumb
+          const early = i < crumbs.length - 2
           const grow = last
             ? 'shrink min-w-[6ch]'
             : i === 1
@@ -76,14 +78,25 @@ export function TopLine({
               {i > 0 && (
                 <span
                   aria-hidden
-                  className="mx-1 h-3.5 w-px shrink-0 rotate-[18deg] rounded-full bg-faint/50"
+                  className={cn(
+                    'mx-1 h-3.5 w-px shrink-0 rotate-[18deg] rounded-full bg-faint/50',
+                    i <= crumbs.length - 2 && 'max-sm:hidden',
+                  )}
                 />
               )}
               {c.menu ? (
-                <span className={cn('flex min-w-0 items-center gap-0.5', grow)}>
+                <span
+                  className={cn(
+                    'flex min-w-0 items-center gap-0.5',
+                    grow,
+                    early && 'max-sm:hidden',
+                  )}
+                >
                   {name}
                   <CrumbSwitch menu={c.menu} />
                 </span>
+              ) : early ? (
+                <span className="contents max-sm:hidden">{name}</span>
               ) : (
                 name
               )}
@@ -91,13 +104,15 @@ export function TopLine({
           )
         })}
       </nav>
-      <div className="flex shrink-0 items-center gap-3">{children}</div>
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+        {children}
+      </div>
     </div>
   )
 }
 
 const CRUMB =
-  'block h-7 min-w-0 truncate rounded-md px-1.5 leading-7 outline-none focus-visible:outline-2 focus-visible:outline-ring'
+  'block h-7 min-w-0 pointer-coarse:h-10 pointer-coarse:leading-10 truncate rounded-md px-1.5 leading-7 outline-none focus-visible:outline-2 focus-visible:outline-ring'
 
 export function Group({ children }: { children: React.ReactNode }) {
   return <div className="flex shrink-0 items-center gap-1.5">{children}</div>
@@ -119,7 +134,7 @@ export type SwitchItem = {
 )
 
 const SEG = [
-  'flex h-8 shrink-0 items-center gap-2 whitespace-nowrap',
+  'flex h-8 shrink-0 items-center gap-2 whitespace-nowrap pointer-coarse:h-10',
   'rounded-md px-3 text-sm transition-colors duration-100',
   'focus-visible:outline-2 focus-visible:outline-ring',
   '[&_svg]:size-4 [&_svg]:shrink-0',
@@ -139,7 +154,7 @@ export function ViewSwitch({
   return (
     <fieldset
       aria-label={label}
-      className="flex h-9 shrink-0 items-center gap-0.5 rounded-lg bg-island-muted p-0.5"
+      className="flex h-9 shrink-0 items-center gap-0.5 rounded-lg bg-island-muted p-0.5 pointer-coarse:h-11"
     >
       {items.map((it) => {
         const Icon = it.icon
@@ -205,7 +220,7 @@ export type MenuItem = {
 }
 
 const MORE_BTN =
-  'grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-ring'
+  'grid size-9 place-items-center rounded-lg pointer-coarse:size-10 text-muted-foreground transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-ring'
 
 export function MoreMenu({ items }: { items: MenuItem[] }) {
   if (items.length === 0)
@@ -251,7 +266,7 @@ export function MoreMenu({ items }: { items: MenuItem[] }) {
               </>
             )
             const cls =
-              'flex h-9 cursor-default select-none items-center gap-3 rounded-lg px-3 text-base outline-none data-[highlighted]:bg-accent'
+              'flex h-9 cursor-default select-none items-center gap-3 rounded-lg px-3 text-base outline-none data-[highlighted]:bg-accent pointer-coarse:h-11'
             if (it.link)
               return (
                 <DropdownMenu.Item key={it.key} asChild className={cls}>

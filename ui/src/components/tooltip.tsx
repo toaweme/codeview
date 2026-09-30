@@ -34,7 +34,7 @@ export function Tooltip({
           side={side}
           sideOffset={6}
           className={cn(
-            'pointer-events-none z-[70] max-w-sm select-none rounded-lg',
+            'pointer-events-none z-[70] max-w-[min(24rem,calc(100vw-24px))] select-none rounded-lg',
             'bg-foreground px-2.5 py-1.5 text-background text-sm',
             '[&_kbd]:bg-background/15 [&_kbd]:text-background',
             className,

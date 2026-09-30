@@ -96,7 +96,7 @@ export function Select<T extends string>({
           'flex w-full min-w-0 items-center gap-2 whitespace-nowrap text-left',
           'transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-ring',
           trigger ??
-            'h-9 rounded-lg bg-island-muted px-3 hover:bg-hover data-[state=open]:bg-accent',
+            'h-9 pointer-coarse:h-10 rounded-lg bg-island-muted px-3 hover:bg-hover data-[state=open]:bg-accent',
           onClear && 'pr-14',
         )}
       >
@@ -132,7 +132,11 @@ export function Select<T extends string>({
   return (
     <Popover.Root open={open} onOpenChange={show}>
       <div
-        className={cn('relative flex min-w-0', !trigger && 'h-9', className)}
+        className={cn(
+          'relative flex min-w-0',
+          !trigger && 'h-9 pointer-coarse:h-10',
+          className,
+        )}
       >
         {tooltip ? (
           <Tooltip label={tooltip} side="bottom">
@@ -147,7 +151,7 @@ export function Select<T extends string>({
             aria-label={`Clear ${label.toLowerCase()}`}
             onClick={onClear}
             className={cn(
-              'absolute top-1.5 right-7 grid size-6 place-items-center rounded-md',
+              'absolute top-1.5 pointer-coarse:top-2 right-7 grid size-6 place-items-center rounded-md',
               'text-faint transition-colors duration-100',
               'hover:bg-hover hover:text-foreground',
             )}

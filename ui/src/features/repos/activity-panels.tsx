@@ -26,7 +26,7 @@ import { useRepoNames } from './use-repo-names'
 import { isBotBranch, type Release, type ReleaseGroup } from './versions'
 
 const ROW = [
-  'group relative flex h-(--row-h) min-w-0 items-center gap-3',
+  'group relative flex h-(--row-h) min-w-0 items-center gap-3 pointer-coarse:h-11',
   'rounded-lg px-2.5 transition-colors duration-75 hover:bg-hover',
 ].join(' ')
 const OVERLAY = [
@@ -501,7 +501,7 @@ export function RepoFilter({
       onChange={onChange}
       options={options}
       empty="No repository matches."
-      className="w-52 min-w-32 shrink"
+      className="min-w-0 flex-1 basis-40 sm:w-52 sm:min-w-32 sm:flex-none sm:shrink"
     />
   )
 }
@@ -514,7 +514,7 @@ export function FilterBar({
   count?: React.ReactNode
 }) {
   return (
-    <div className="flex h-9 min-w-0 items-center gap-2">
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
       {children}
       {count !== undefined && (
         <span className="num ml-auto shrink-0 whitespace-nowrap pl-2 text-faint text-sm">

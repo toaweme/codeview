@@ -151,7 +151,7 @@ function GroupBody({
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
           className={cn(
-            'flex h-(--row-h) w-full items-center gap-2 rounded-lg px-2.5',
+            'flex h-(--row-h) w-full items-center gap-2 rounded-lg px-2.5 pointer-coarse:h-11',
             'text-faint text-sm transition-colors duration-75',
             'hover:bg-hover hover:text-foreground',
           )}
@@ -187,7 +187,7 @@ function RepoRow({
       activeOptions={{ includeSearch: false }}
       activeProps={{ className: 'bg-active text-foreground' }}
       className={cn(
-        'flex h-(--row-h) items-center gap-2 rounded-lg px-2.5',
+        'flex h-(--row-h) items-center gap-2 rounded-lg px-2.5 pointer-coarse:h-11',
         'text-base text-muted-foreground transition-colors duration-75',
         'hover:bg-hover hover:text-foreground',
       )}

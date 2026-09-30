@@ -45,7 +45,7 @@ export function OrgStrip({
     <div
       style={{ '--tone': tone } as React.CSSProperties}
       className={cn(
-        'flex flex-col gap-5 rounded-2xl p-5 md:flex-row md:items-center',
+        'flex flex-col gap-5 rounded-2xl p-4 sm:p-5 md:flex-row md:items-center',
         'bg-[color-mix(in_oklab,var(--tone)_7%,var(--island-muted))]',
       )}
     >

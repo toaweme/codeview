@@ -132,7 +132,7 @@ export function CommitsView({
           items={historyActions(repo, resolved, path, known ? file : undefined)}
         />
       </PathBar>
-      <div className="shrink-0 px-4 pt-4">
+      <div className="shrink-0 px-2 pt-2 sm:px-4 sm:pt-4">
         <div className="rounded-2xl bg-island-muted p-1.5">
           {/* fields inside the muted toolbar sit on the island color */}
           <div className="[--island-muted:var(--island)]">
@@ -155,7 +155,7 @@ export function CommitsView({
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="px-4 pb-12">
+        <div className="px-2 pb-12 sm:px-4">
           {partial && (
             <p className="px-2 pt-3 text-faint text-sm">
               Only the newest 20,000 commits were searched by author date, so
@@ -368,7 +368,7 @@ function CommitRow({
     <li
       className={cn(
         'group relative flex items-center rounded-lg',
-        'h-(--row-h) gap-4 px-2.5',
+        'h-(--row-h) gap-3 px-2.5 sm:gap-4 pointer-coarse:h-11',
         'transition-colors duration-75 hover:bg-hover',
       )}
     >
@@ -382,7 +382,7 @@ function CommitRow({
         {c.author.name}
       </span>
       <span
-        className="w-28 shrink-0 truncate text-right text-faint text-sm"
+        className="w-20 shrink-0 truncate text-right text-faint text-sm sm:w-28"
         title={formatFull(when)}
       >
         {relativeTime(when)}
@@ -392,9 +392,9 @@ function CommitRow({
       </span>
       <span
         className={cn(
-          'relative z-[1] flex shrink-0 items-center justify-end',
+          'relative z-[1] hidden shrink-0 items-center justify-end sm:flex',
           'w-16',
-          'opacity-0',
+          'opacity-0 pointer-coarse:opacity-100',
           'transition-opacity duration-100 focus-within:opacity-100 group-hover:opacity-100',
         )}
       >

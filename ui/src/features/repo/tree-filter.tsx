@@ -98,7 +98,7 @@ export function TreeFilter({
                     {...preload(link)}
                     title={r.path}
                     className={cn(
-                      'flex h-(--row-h) items-center gap-2.5 rounded-lg px-2.5 transition-colors duration-75 hover:bg-hover',
+                      'flex h-(--row-h) items-center gap-2.5 rounded-lg px-2.5 transition-colors duration-75 hover:bg-hover pointer-coarse:h-11',
                       i === sel && 'bg-hover',
                       r.path === current && 'bg-active',
                     )}

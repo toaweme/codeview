@@ -92,7 +92,7 @@ export function BranchesTab({
           value={sort}
           onChange={setSort}
           options={BRANCH_SORTS}
-          className="w-56 min-w-36 shrink"
+          className="min-w-0 flex-1 basis-40 sm:w-56 sm:min-w-36 sm:flex-none sm:shrink"
         />
       </FilterBar>
       <p className="flex flex-wrap gap-x-5 gap-y-1 px-1 text-faint text-sm">

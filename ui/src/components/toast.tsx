@@ -13,7 +13,7 @@ export function Toaster() {
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-6 z-[80] flex flex-col items-center gap-2 px-4"
+      className="pointer-events-none fixed inset-x-0 bottom-20 z-[80] sm:bottom-6 flex flex-col items-center gap-2 px-4"
     >
       {list.map((t) => {
         const Icon = t.tone === 'error' ? CircleAlert : CircleCheck
@@ -21,7 +21,7 @@ export function Toaster() {
           <div
             key={t.id}
             className={cn(
-              'pointer-events-auto flex max-w-md items-center gap-2.5 rounded-xl bg-island py-2 pr-2 pl-3.5 text-sm',
+              'pointer-events-auto flex max-w-full items-center sm:max-w-md gap-2.5 rounded-xl bg-island py-2 pr-2 pl-3.5 text-sm',
               'shadow-[0_0_0_1px_var(--border),0_16px_40px_-12px_rgb(0_0_0/0.35)]',
             )}
           >

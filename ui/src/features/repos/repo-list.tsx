@@ -66,6 +66,7 @@ export function RepoList({ org }: { org?: string }) {
           value={view}
           onChange={(v) => navigate(overviewLink(org, v))}
           options={TABS}
+          className="max-sm:hidden"
         />
         <MoreMenu
           items={[
@@ -78,8 +79,16 @@ export function RepoList({ org }: { org?: string }) {
           ]}
         />
       </TopLine>
+      <div className="shrink-0 px-2 pt-2 sm:hidden">
+        <Segmented
+          fill
+          value={view}
+          onChange={(v) => navigate(overviewLink(org, v))}
+          options={TABS}
+        />
+      </div>
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto flex max-w-[1440px] flex-col gap-10 px-4 pt-5 pb-12 sm:px-6">
+        <div className="mx-auto flex max-w-[1440px] flex-col gap-10 px-3 pt-4 pb-12 sm:px-6 sm:pt-5">
           {view === 'overview' ? (
             <OverviewTab org={org} scope={scope} repos={q} />
           ) : view === 'activity' ? (

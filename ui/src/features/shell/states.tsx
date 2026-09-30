@@ -78,7 +78,7 @@ export function Empty({
     <div
       className={cn(
         'flex flex-col items-center justify-center text-center',
-        page ? 'gap-2 px-6 py-20' : 'gap-1 px-4 py-10',
+        page ? 'gap-2 px-4 py-12 sm:px-6 sm:py-20' : 'gap-1 px-4 py-10',
         light && (page ? 'py-16' : 'py-8'),
         className,
       )}

@@ -64,7 +64,7 @@ export function DateRangeControl({
           type="button"
           className={cn(
             'flex shrink-0 items-center rounded-lg',
-            'h-9 w-56 gap-2 px-3',
+            'h-9 w-full gap-2 px-3 sm:w-56 pointer-coarse:h-10',
             'whitespace-nowrap text-sm',
             'transition-colors duration-100',
             'focus-visible:outline-2 focus-visible:outline-ring',
@@ -93,8 +93,8 @@ export function DateRangeControl({
           sideOffset={6}
           collisionPadding={12}
           className={cn(
-            'z-50 flex flex-col rounded-xl',
-            'max-w-[calc(100vw-24px)]',
+            'z-50 flex flex-col overflow-y-auto rounded-xl',
+            'max-h-(--radix-popover-content-available-height) max-w-[calc(100vw-24px)]',
             'bg-island shadow-[0_0_0_1px_var(--border),0_16px_40px_-12px_rgb(0_0_0/0.4)]',
           )}
           onEscapeKeyDown={(e) => {
@@ -214,8 +214,8 @@ function RangePanel({
 
   return (
     <>
-      <div className="flex">
-        <ul className="flex w-40 shrink-0 flex-col gap-0.5 p-1.5">
+      <div className="flex flex-col sm:flex-row">
+        <ul className="flex shrink-0 flex-wrap gap-0.5 p-1.5 sm:w-40 sm:flex-col sm:flex-nowrap">
           <PresetItem
             label="Any time"
             on={!filter.range && !filter.since && !filter.until}
@@ -238,7 +238,7 @@ function RangePanel({
             }}
           />
         </ul>
-        <div className="w-[296px] p-3 pl-1.5">
+        <div className="w-full p-3 pt-1.5 sm:w-[296px] sm:pt-3 sm:pl-1.5">
           <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5">
             {(['since', 'until'] as const).map((end) => (
               <DayInput
@@ -348,7 +348,7 @@ function RangePanel({
                   onFocus={() => start && setHover(day)}
                   className={cn(
                     'relative grid place-items-center',
-                    'h-8',
+                    'h-8 pointer-coarse:h-10',
                     'num text-sm',
                     'transition-colors duration-75',
                     'focus-visible:z-[1] focus-visible:outline-2 focus-visible:outline-ring',
@@ -415,7 +415,7 @@ function PresetItem({
         onClick={onClick}
         className={cn(
           'flex items-center rounded-md',
-          'h-8 w-full gap-2 px-2.5',
+          'h-8 w-full gap-2 px-2.5 pointer-coarse:h-10',
           'whitespace-nowrap text-left text-sm',
           'transition-colors duration-75 focus-visible:outline-2 focus-visible:outline-ring',
           on

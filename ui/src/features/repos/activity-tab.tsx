@@ -106,7 +106,7 @@ export function ActivityTab({
             setIdle({ loads: 0, matches: 0 })
           }}
           placeholder="Filter messages"
-          className="w-64 min-w-0 shrink"
+          className="min-w-0 flex-1 basis-40 sm:w-64 sm:flex-none sm:shrink"
         />
         <SearchInput
           value={author}
@@ -115,7 +115,7 @@ export function ActivityTab({
             setIdle({ loads: 0, matches: 0 })
           }}
           placeholder="Filter authors"
-          className="w-52 min-w-0 shrink"
+          className="min-w-0 flex-1 basis-40 sm:w-52 sm:flex-none sm:shrink"
         />
         <Segmented value={range} onChange={setRange} options={RANGES} />
       </FilterBar>

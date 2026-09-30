@@ -38,6 +38,7 @@ import {
   type Row,
   sideDocument,
 } from '@/lib/diff-model'
+import { useMedia } from '@/lib/use-media'
 import { usePersistedState } from '@/lib/use-persisted-state'
 import { DiffFileList } from './diff-file-list'
 import { DiffRow, FileHeader, type RowContext } from './diff-rows'
@@ -123,7 +124,10 @@ export function DiffView({
   crumbs: Crumb[]
   actions?: MenuItem[]
 }) {
-  const [mode, setMode] = usePersistedState<DiffMode>('diff:mode', 'unified')
+  const [stored, setMode] = usePersistedState<DiffMode>('diff:mode', 'unified')
+  // two columns of code do not fit a phone, so it always reads unified
+  const splitFits = useMedia(SPLIT_FITS)
+  const mode = splitFits ? stored : 'unified'
   const slot = useContext(SidebarSlot)
   const { viewed, toggleViewed } = useViewed(repo, viewKey)
   const [overrides, setOverrides] = useState<Map<number, boolean>>(new Map())
@@ -197,6 +201,22 @@ export function DiffView({
     scrollTop > margin &&
     currentHeaderStart < scrollTop
 
+  // the trailing gap's length is unknown until the file loads, so fetch it once the row is on screen
+  const unsized = items
+    .map((it) => rows[it.index])
+    .filter((r) => r.kind === 'expand' && r.gap.end === null)
+    .map((r) => r.file)
+    .filter((fi) => !fetchFiles.has(fi))
+    .join()
+  useEffect(() => {
+    if (!unsized) return
+    setFetchFiles((prev) => {
+      const next = new Set(prev)
+      for (const fi of unsized.split(',')) next.add(Number(fi))
+      return next
+    })
+  }, [unsized])
+
   const visibleFiles = useMemo(() => {
     const s = new Set<number>()
     for (const it of items) s.add(fileOf[it.index])
@@ -269,12 +289,16 @@ export function DiffView({
     setMode((m) => (m === 'unified' ? 'split' : 'unified'))
 
   useCommands([
-    {
-      id: 'diff:mode',
-      label: mode === 'unified' ? 'Show split diff' : 'Show unified diff',
-      icon: mode === 'unified' ? Columns2 : Rows3,
-      run: toggleMode,
-    },
+    ...(splitFits
+      ? [
+          {
+            id: 'diff:mode',
+            label: mode === 'unified' ? 'Show split diff' : 'Show unified diff',
+            icon: mode === 'unified' ? Columns2 : Rows3,
+            run: toggleMode,
+          },
+        ]
+      : []),
     {
       id: 'diff:viewed',
       label: 'Mark the current file viewed',
@@ -362,7 +386,7 @@ export function DiffView({
             )}
           </span>
         </Group>
-        <LayoutSwitch mode={mode} setMode={setMode} />
+        {splitFits && <LayoutSwitch mode={mode} setMode={setMode} />}
         <MoreMenu items={[...actions, ...diffActions]} />
       </TopLine>
       {banner}
@@ -379,7 +403,7 @@ export function DiffView({
                   key={it.key}
                   data-index={it.index}
                   ref={virt.measureElement}
-                  className="absolute top-0 right-3 left-3"
+                  className="absolute top-0 right-1.5 left-1.5 sm:right-3 sm:left-3"
                   style={{ transform: `translateY(${it.start - margin}px)` }}
                 >
                   <DiffRow row={rows[it.index]} ctx={ctx} />
@@ -393,7 +417,7 @@ export function DiffView({
             )}
           </div>
           {showSticky && (
-            <div className="pointer-events-auto absolute top-0 right-6 left-3 z-10">
+            <div className="pointer-events-auto absolute top-0 right-4 left-1.5 z-10 bg-background pt-1.5 sm:right-6 sm:left-3 sm:pt-3">
               <FileHeader file={currentFile} ctx={ctx} sticky />
             </div>
           )}
@@ -402,6 +426,8 @@ export function DiffView({
     </>
   )
 }
+
+const SPLIT_FITS = '(min-width: 768px)'
 
 function LayoutSwitch({
   mode,
@@ -441,9 +467,10 @@ export function DiffTopLine({
   actions: MenuItem[]
 }) {
   const [mode, setMode] = usePersistedState<DiffMode>('diff:mode', 'unified')
+  const splitFits = useMedia(SPLIT_FITS)
   return (
     <TopLine crumbs={crumbs}>
-      <LayoutSwitch mode={mode} setMode={setMode} />
+      {splitFits && <LayoutSwitch mode={mode} setMode={setMode} />}
       <MoreMenu items={actions} />
     </TopLine>
   )

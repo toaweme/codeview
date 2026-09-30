@@ -67,7 +67,11 @@ export function gapsFor(
     nextOld = h.old_start + h.old_lines
   })
   const trailingEnd = totalLines ?? null
-  if (f.hunks.length > 0 && (trailingEnd === null || trailingEnd >= nextNew)) {
+  const hitEOF =
+    trailingEnd === null
+      ? f.status === 'added' || endsAtEOF(f)
+      : trailingEnd < nextNew
+  if (f.hunks.length > 0 && !hitEOF) {
     out.push({
       key: gapKey(file, f.hunks.length),
       start: nextNew,
@@ -78,6 +82,21 @@ export function gapsFor(
     out.push(null)
   }
   return out
+}
+
+// matches git's default -U3
+const CONTEXT_LINES = 3
+
+// git pads a hunk with CONTEXT_LINES of context unless the file ends first
+function endsAtEOF(f: FileDiff): boolean {
+  const last = f.hunks[f.hunks.length - 1]
+  if (!last) return true
+  let tail = 0
+  for (let i = last.lines.length - 1; i >= 0; i--) {
+    if (last.lines[i].type !== 'context') break
+    tail++
+  }
+  return tail < CONTEXT_LINES
 }
 
 export function pairChanges(

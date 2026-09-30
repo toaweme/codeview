@@ -65,7 +65,7 @@ export function TreeView({
         <MoreMenu items={pathActions(repo, resolved, { kind: 'tree', path })} />
       </PathBar>
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto w-full max-w-[860px] px-6 pt-6 pb-16">
+        <div className="mx-auto w-full max-w-[860px] px-3 pt-4 pb-16 sm:px-6 sm:pt-6">
           {!path && resolved && (
             <>
               <RepoSummary repo={repo} resolved={resolved} />
@@ -115,7 +115,7 @@ function Readme({
           {...repoLink(repo, { kind: 'blob', ref, path: readme.path })}
           className={cn(
             'flex shrink-0 items-center rounded-md',
-            'h-7 px-2.5',
+            'h-7 px-2.5 pointer-coarse:h-9',
             'whitespace-nowrap',
             'transition-colors duration-100 hover:bg-hover hover:text-foreground',
           )}
@@ -171,7 +171,7 @@ function RepoSummary({
   const ref = resolved.isDefault ? undefined : resolved.name
 
   return (
-    <section className="mb-8 rounded-xl bg-island-muted p-5">
+    <section className="mb-8 rounded-xl bg-island-muted p-4 sm:p-5">
       <div className="flex items-center gap-3">
         <RepoGlyph name={repo} />
         <h1 className="min-w-0 truncate font-semibold text-2xl tracking-tight">

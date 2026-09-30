@@ -31,6 +31,7 @@ import {
   repoLink,
   type Selection,
 } from '@/lib/url'
+import { useMedia } from '@/lib/use-media'
 import { authorLabel, BlameLegend } from './blame-legend'
 import { mergeBlame, splitLines } from './file-lines'
 import { pathActions } from './path-actions'
@@ -38,6 +39,8 @@ import { PathBar, ViewToggles } from './path-bar'
 
 const ROW = 23
 const BLAME_W = 300
+// a phone keeps the sticky blame column narrow so code stays in view
+const BLAME_W_NARROW = 150
 const AHEAD = 400
 
 export function FileView({
@@ -161,7 +164,7 @@ export function FileView({
         <BinaryFile path={path} rawUrl={rawUrl} size={blob.data.size} />
       ) : showRendered ? (
         <div className="min-h-0 flex-1 overflow-auto">
-          <div className="mx-auto w-full max-w-[860px] px-6 pt-6 pb-16">
+          <div className="mx-auto w-full max-w-[860px] px-3 pt-4 pb-16 sm:px-6 sm:pt-6">
             {rendered.isPending ? (
               <Skeleton lines={16} className="px-0" />
             ) : (
@@ -205,7 +208,7 @@ function BinaryFile({
 }) {
   if (isImagePath(path)) {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-8">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4 sm:p-8">
         <img
           src={rawUrl}
           alt={path}
@@ -323,14 +326,16 @@ function CodeLines({
     else setSelection({ start: n, end: n })
   }
 
+  const roomy = useMedia('(min-width: 640px)')
   const digits = String(lines.length).length
-  const numW = `calc(${digits}ch + 44px)`
-  const blameW = blameIdx || blameLoading ? BLAME_W : 0
+  const numW = `calc(${digits}ch + ${roomy ? 44 : 28}px)`
+  const blameW =
+    blameIdx || blameLoading ? (roomy ? BLAME_W : BLAME_W_NARROW) : 0
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       {truncated && (
-        <div className="shrink-0 px-6 pb-2 text-faint text-sm">
+        <div className="shrink-0 px-3 pb-2 text-faint text-sm sm:px-6">
           This file is large, so only its beginning is shown.
         </div>
       )}
@@ -377,6 +382,7 @@ function CodeLines({
                       idx={blameIdx}
                       range={r}
                       first={!!rangeStart}
+                      width={blameW}
                     />
                   )}
                   <button
@@ -385,7 +391,7 @@ function CodeLines({
                     onClick={(e) => clickLine(n, e.shiftKey)}
                     className={cn(
                       'sticky z-[1] shrink-0',
-                      'pr-4 pl-6',
+                      'px-3 sm:pr-4 sm:pl-6',
                       'select-none bg-background text-right font-sans text-sm text-faint/80 num',
                       'hover:text-foreground',
                       selected && 'bg-line-sel text-primary',
@@ -412,11 +418,13 @@ function BlameCell({
   idx,
   range,
   first,
+  width,
 }: {
   repo: string
   idx: BlameIndex | null
   range: number
   first: boolean
+  width: number
 }) {
   const r = idx && range >= 0 ? idx.ranges[range] : null
   const step =
@@ -427,10 +435,10 @@ function BlameCell({
     <div
       className={cn(
         'sticky z-[2] flex shrink-0 items-center',
-        'left-0 gap-3 pr-4',
+        'left-0 gap-2 pr-2 sm:gap-3 sm:pr-4',
         'bg-background font-sans text-sm',
       )}
-      style={{ width: BLAME_W }}
+      style={{ width }}
     >
       <span
         className="mr-2 w-1 shrink-0 self-stretch"
@@ -440,7 +448,7 @@ function BlameCell({
       />
       {r && first ? (
         <>
-          <span className="w-24 shrink-0 whitespace-nowrap text-faint text-xs num">
+          <span className="w-24 shrink-0 whitespace-nowrap text-faint text-xs num max-sm:hidden">
             {relativeTime(r.commit.author.date)}
           </span>
           <Tooltip label={authorLabel(r.commit.author)}>
@@ -463,7 +471,7 @@ function BlameCell({
           </Link>
         </>
       ) : !idx ? (
-        <span className="h-2 w-40 animate-pulse rounded bg-muted" />
+        <span className="h-2 w-full max-w-40 animate-pulse rounded bg-muted" />
       ) : (
         <span className="flex-1" />
       )}
