@@ -20,20 +20,20 @@ type Fixture struct {
 }
 
 // New skips the test when git is absent.
-func New(t testing.TB) Fixture {
-	t.Helper()
+func New(tb testing.TB) Fixture {
+	tb.Helper()
 	if _, err := exec.LookPath("git"); err != nil {
-		t.Skip("git is not installed")
+		tb.Skip("git is not installed")
 	}
-	base := t.TempDir()
+	base := tb.TempDir()
 	work := filepath.Join(base, "work")
 	root := filepath.Join(base, "repos")
 	f := Fixture{Root: root, Name: "acme/widgets"}
 
 	date := "2026-01-02T10:00:00+02:00"
 	run := func(args ...string) string {
-		t.Helper()
-		cmd := exec.Command("git", args...)
+		tb.Helper()
+		cmd := exec.CommandContext(tb.Context(), "git", args...)
 		cmd.Dir = work
 		cmd.Env = append(
 			cleanEnv(),
@@ -48,22 +48,22 @@ func New(t testing.TB) Fixture {
 		)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+			tb.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
 		}
 		return strings.TrimSpace(string(out))
 	}
 	write := func(path, content string) {
-		t.Helper()
+		tb.Helper()
 		full := filepath.Join(work, filepath.FromSlash(path))
 		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-			t.Fatal(err)
+			tb.Fatal(err)
 		}
-		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
-			t.Fatal(err)
+		if err := os.WriteFile(full, []byte(content), 0o600); err != nil {
+			tb.Fatal(err)
 		}
 	}
 	if err := os.MkdirAll(work, 0o755); err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 
 	run("init", "-q", "-b", "main")
@@ -99,12 +99,12 @@ func New(t testing.TB) Fixture {
 
 	bare := filepath.Join(root, "acme", "widgets.git")
 	if err := os.MkdirAll(filepath.Dir(bare), 0o755); err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	run("clone", "-q", "--bare", work, bare)
 	description := filepath.Join(bare, "description")
-	if err := os.WriteFile(description, []byte("Widget factory\n"), 0o644); err != nil {
-		t.Fatal(err)
+	if err := os.WriteFile(description, []byte("Widget factory\n"), 0o600); err != nil {
+		tb.Fatal(err)
 	}
 	return f
 }

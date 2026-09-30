@@ -1,0 +1,62 @@
+name: Bug report
+description: Something in codeview behaves incorrectly.
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. A bug report is an issue too, so a maintainer will
+        confirm it before any fix PR is opened. Please do not open a PR yet.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead?
+      placeholder: I opened a repo page and expected ..., but it ...
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: How you run it
+      description: The exact command or docker run line, including flags and CODEVIEW_* env vars, plus the page URL or API request that misbehaves.
+      render: shell
+      placeholder: codeview serve --dir ~/code --mode all
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output / logs
+      description: Relevant server logs or browser console output. Paste it as text, not a screenshot.
+      render: shell
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: codeview version
+      description: Output of `codeview --version`.
+      placeholder: v0.7.0
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install codeview?
+      options:
+        - Docker image
+        - Homebrew tap
+        - Scoop bucket
+        - Downloaded release binary
+        - Built from source
+        - Other (describe above)
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and architecture
+      placeholder: macOS 15 arm64 / Ubuntu 24.04 amd64
+    validations:
+      required: true

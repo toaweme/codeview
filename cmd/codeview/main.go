@@ -28,6 +28,9 @@ import (
 
 const appName = "codeview"
 
+// version is set at release time through -ldflags -X main.version.
+var version = "dev"
+
 func main() {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -35,7 +38,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	app := cli.NewApp(cli.Config{Name: appName}, cli.GlobalFlags{Cwd: cwd})
+	app := cli.NewApp(cli.Config{Name: appName, Version: version}, cli.GlobalFlags{Cwd: cwd})
 	app.Help(help.NewHelpCommand(app.Config, app.Commands, app.OutputFormats, app.DefaultCommand))
 	serveCommand := NewServeCommand(codeview.UI)
 	app.Add("serve", serveCommand)

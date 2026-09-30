@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -61,7 +62,7 @@ func (r *cliRepo) command(ctx context.Context, args ...string) *exec.Cmd {
 		"-c", "safe.directory=*",
 		"-c", "core.quotePath=false",
 	}, args...)
-	cmd := exec.CommandContext(ctx, r.bin, full...)
+	cmd := exec.CommandContext(ctx, r.bin, full...) //nolint:gosec // r.bin is the configured git executable and callers validate every argument
 	cmd.Env = gitEnv()
 	return cmd
 }
@@ -225,9 +226,9 @@ func parseISO(s string) time.Time {
 
 func (r *cliRepo) Resolve(_ context.Context, rev string) (string, error) {
 	var candidates []string
-	name, suffix := "", ""
-	switch {
-	case rev == "":
+	var name, suffix string
+	switch rev {
+	case "":
 		branch, err := r.defaultBranch()
 		if err != nil {
 			return "", err
@@ -348,7 +349,7 @@ func parseTree(data []byte, oidLen int, dir string) ([]TreeEntry, []string, erro
 			return nil, nil, fmt.Errorf("failed to find an entry name: %w", io.ErrUnexpectedEOF)
 		}
 		name := string(data[:nul])
-		oid := fmt.Sprintf("%x", data[nul+1:nul+1+oidLen])
+		oid := hex.EncodeToString(data[nul+1 : nul+1+oidLen])
 		data = data[nul+1+oidLen:]
 
 		for len(mode) < 6 {

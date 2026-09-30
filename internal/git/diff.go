@@ -73,6 +73,7 @@ func (r *cliRepo) Diff(ctx context.Context, base, head string) ([]FileDiff, erro
 	return files, nil
 }
 
+// ParsePatch parses the output of git diff --patch into one FileDiff per file.
 func ParsePatch(r io.Reader) ([]FileDiff, error) {
 	br := bufio.NewReaderSize(r, 64*1024)
 	files := []FileDiff{}
@@ -101,6 +102,8 @@ func ParsePatch(r io.Reader) ([]FileDiff, error) {
 			cur.OldPath = ""
 		case StatusModified, StatusDeleted:
 			cur.OldPath = cur.Path
+		case StatusRenamed, StatusCopied:
+			// OldPath already holds the source from the rename or copy header.
 		}
 		files = append(files, *cur)
 		cur = nil

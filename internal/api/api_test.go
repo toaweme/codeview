@@ -34,7 +34,7 @@ func get(h http.Handler, path string, query params, header ...string) *httptest.
 	for k, v := range query {
 		q.Set(k, v)
 	}
-	req := httptest.NewRequest(http.MethodGet, path+"?"+q.Encode(), nil)
+	req := httptest.NewRequest(http.MethodGet, path+"?"+q.Encode(), http.NoBody)
 	for i := 0; i+1 < len(header); i += 2 {
 		req.Header.Set(header[i], header[i+1])
 	}
@@ -181,9 +181,10 @@ func Test_API_Blob(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			body := decode(t, get(h, "/api/blob", params{"repo": f.Name, "path": tt.path}))
+			truncated, _ := body["truncated"].(bool)
 			if body["binary"] != tt.binary ||
 				body["content"] != tt.content ||
-				body["truncated"] != false {
+				truncated {
 				t.Fatalf("blob = %v", body)
 			}
 		})
@@ -326,7 +327,6 @@ func Test_API_CompareMode(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func Test_API_CompareDivergence(t *testing.T) {

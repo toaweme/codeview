@@ -18,7 +18,7 @@ func ValidateRepoName(name string) error {
 				ErrInvalidArgument,
 			)
 		}
-		for i := 0; i < len(seg); i++ {
+		for i := range len(seg) {
 			c := seg[i]
 			if !isNameByte(c) {
 				return fmt.Errorf(
@@ -52,7 +52,7 @@ func validateRev(rev string) error {
 		strings.HasSuffix(rev, ".lock") {
 		return fmt.Errorf("ref %q is not a valid ref name: %w", rev, ErrInvalidArgument)
 	}
-	for i := 0; i < len(rev); i++ {
+	for i := range len(rev) {
 		c := rev[i]
 		if c <= ' ' || c == 0x7f || strings.IndexByte("~^:?*[\\", c) >= 0 {
 			return fmt.Errorf("ref %q is not a valid ref name: %w", rev, ErrInvalidArgument)
@@ -120,9 +120,9 @@ func isHex(s string) bool {
 	if s == "" {
 		return false
 	}
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		c := s[i]
-		if !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f') {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
 			return false
 		}
 	}

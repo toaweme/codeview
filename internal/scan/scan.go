@@ -16,6 +16,7 @@ import (
 // DefaultMaxDepth bounds how many folders deep a scan looks, which also stops symlink cycles.
 const DefaultMaxDepth = 5
 
+// Config configures a Scanner. Logger defaults to discarding.
 type Config struct {
 	// Dir is the folder holding the git repositories.
 	Dir string
@@ -31,6 +32,7 @@ type Scanner struct {
 
 var _ git.Locator = (*Scanner)(nil)
 
+// New returns a Scanner over cfg.Dir.
 func New(cfg Config) *Scanner {
 	if cfg.MaxDepth == 0 {
 		cfg.MaxDepth = DefaultMaxDepth
@@ -59,7 +61,7 @@ func (s *Scanner) Locate(ctx context.Context) ([]git.Location, error) {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		real, err := filepath.EvalSymlinks(dir)
+		resolved, err := filepath.EvalSymlinks(dir)
 		if err != nil {
 			if depth == 0 {
 				return err
@@ -67,10 +69,10 @@ func (s *Scanner) Locate(ctx context.Context) ([]git.Location, error) {
 			s.cfg.Logger.Warn("scan.skipped", "path", dir, "error", err)
 			return nil
 		}
-		if seenDirs[real] {
+		if seenDirs[resolved] {
 			return nil
 		}
-		seenDirs[real] = true
+		seenDirs[resolved] = true
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			if depth == 0 {
@@ -124,7 +126,7 @@ func (s *Scanner) name(repos []found) []git.Location {
 	for _, r := range repos {
 		folder := strings.TrimSuffix(r.rel, ".git")
 		origin := normaliseURL(originURL(filepath.Join(r.gitDir, "config")))
-		name := ""
+		var name string
 		switch {
 		case origin != "" && git.ValidateRepoName(origin) == nil && !taken[origin]:
 			name = origin

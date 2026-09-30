@@ -55,14 +55,8 @@ tasks:
       - docker compose run --rm gickup
 
   dev:links:
-    desc: Combine soft-serve, gickup and a few GOPATH repositories into .data/view through symlinks
-    vars:
-      GOPATH_REPOS: cli log http
-      GOPATH:
-        sh: go env GOPATH
+    desc: Combine soft-serve and gickup into .data/view through symlinks
     cmds:
-      - mkdir -p {{.VIEW}}/gopath {{.DATA}}/repos .data/gickup
+      - mkdir -p {{.VIEW}} {{.DATA}}/repos .data/gickup
       - ln -sfn ../soft-serve/repos {{.VIEW}}/soft-serve
       - ln -sfn ../gickup {{.VIEW}}/gickup
-      - for: { var: GOPATH_REPOS, split: ' ' }
-        cmd: ln -sfn {{.GOPATH}}/src/github.com/toaweme/{{.ITEM}} {{.VIEW}}/gopath/{{.ITEM}}

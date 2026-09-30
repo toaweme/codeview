@@ -36,7 +36,7 @@ func Test_Handler(t *testing.T) {
 			rec := httptest.NewRecorder()
 			webui.Handler(tt.files).ServeHTTP(
 				rec,
-				httptest.NewRequest(http.MethodGet, tt.path, nil),
+				httptest.NewRequest(http.MethodGet, tt.path, http.NoBody),
 			)
 			if rec.Code != tt.status || !strings.Contains(rec.Body.String(), tt.body) {
 				t.Fatalf("got %d %q", rec.Code, rec.Body.String())

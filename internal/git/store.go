@@ -15,6 +15,7 @@ import (
 // DefaultRescan is how long a Store trusts its last scan before locating repositories again.
 const DefaultRescan = 30 * time.Second
 
+// Config configures a CLIStore. Binary is the git executable and defaults to "git".
 type Config struct {
 	Locator Locator
 	// Mode defaults to ModePublic.
@@ -44,6 +45,7 @@ type CLIStore struct {
 
 var _ Store = (*CLIStore)(nil)
 
+// NewCLIStore returns a Store that reads repositories through the git executable.
 func NewCLIStore(cfg Config) *CLIStore {
 	if cfg.Binary == "" {
 		cfg.Binary = "git"
@@ -63,6 +65,7 @@ func NewCLIStore(cfg Config) *CLIStore {
 	return &CLIStore{cfg: cfg, repos: map[string]*cliRepo{}, cache: map[string]cachedSummary{}}
 }
 
+// List summarizes every repository the store serves.
 func (s *CLIStore) List(ctx context.Context) ([]RepoSummary, error) {
 	locs, names, err := s.located(ctx)
 	if err != nil {
@@ -119,6 +122,7 @@ func (s *CLIStore) located(ctx context.Context) (map[string]Location, []string, 
 
 var errNoLocator = errors.New("no locator configured")
 
+// Open returns the repository called name, or ErrNotFound when the store does not serve it.
 func (s *CLIStore) Open(ctx context.Context, name string) (Repo, error) {
 	return s.open(ctx, name)
 }
@@ -149,7 +153,7 @@ func (s *CLIStore) open(ctx context.Context, name string) (*cliRepo, error) {
 	} else if ok {
 		r.cat.Close()
 	}
-	r := newCLIRepo(name, loc.GitDir, s.cfg.Binary, s.cfg.IdleTimeout)
+	r := newCLIRepo(name, loc.GitDir, s.cfg.Binary, s.cfg.IdleTimeout) //nolint:contextcheck // its cat-file process outlives the request and stops on the idle timeout
 	s.repos[name] = r
 	return r, nil
 }
@@ -166,6 +170,7 @@ func (s *CLIStore) forget(name string) {
 	s.cacheMu.Unlock()
 }
 
+// Close stops every git process the store keeps open.
 func (s *CLIStore) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

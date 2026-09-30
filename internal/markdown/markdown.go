@@ -46,7 +46,7 @@ func IsMarkdown(p string) bool {
 	return false
 }
 
-// Goldmark renders GitHub-flavoured Markdown in goldmark's safe mode.
+// Goldmark renders GitHub-flavored Markdown in goldmark's safe mode.
 type Goldmark struct {
 	md  goldmark.Markdown
 	key parser.ContextKey
@@ -54,6 +54,7 @@ type Goldmark struct {
 
 var _ Renderer = (*Goldmark)(nil)
 
+// NewGoldmark returns a Goldmark with GFM and heading IDs enabled.
 func NewGoldmark() *Goldmark {
 	key := parser.NewContextKey()
 	md := goldmark.New(
@@ -66,6 +67,7 @@ func NewGoldmark() *Goldmark {
 	return &Goldmark{md: md, key: key}
 }
 
+// Render converts src to HTML, resolving relative links and images against doc.
 func (g *Goldmark) Render(src []byte, doc Document) (string, error) {
 	pc := parser.NewContext()
 	pc.Set(g.key, doc)
@@ -182,7 +184,7 @@ func setExternal(n ast.Node) {
 
 // schemeOf returns the lowercased RFC 3986 scheme of dest, or "" when it has none.
 func schemeOf(dest string) string {
-	for i := 0; i < len(dest); i++ {
+	for i := range len(dest) {
 		c := dest[i]
 		switch {
 		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z':

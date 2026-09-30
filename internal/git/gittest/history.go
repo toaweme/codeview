@@ -21,20 +21,20 @@ type History struct {
 }
 
 // NewHistory skips the test when git is absent.
-func NewHistory(t testing.TB) History {
-	t.Helper()
+func NewHistory(tb testing.TB) History {
+	tb.Helper()
 	if _, err := exec.LookPath("git"); err != nil {
-		t.Skip("git is not installed")
+		tb.Skip("git is not installed")
 	}
-	base := t.TempDir()
+	base := tb.TempDir()
 	work := filepath.Join(base, "work")
 	h := History{Root: filepath.Join(base, "repos"), Name: "acme/history"}
 	if err := os.MkdirAll(work, 0o755); err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	git := func(env []string, args ...string) string {
-		t.Helper()
-		cmd := exec.Command("git", args...)
+		tb.Helper()
+		cmd := exec.CommandContext(tb.Context(), "git", args...)
 		cmd.Dir = work
 		cmd.Env = append(
 			append(cleanEnv(), "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+os.DevNull),
@@ -42,7 +42,7 @@ func NewHistory(t testing.TB) History {
 		)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+			tb.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
 		}
 		return strings.TrimSpace(string(out))
 	}
@@ -50,13 +50,13 @@ func NewHistory(t testing.TB) History {
 	ada := who{"Ada Lovelace", "ada@example.com"}
 	bob := who{"Bob Builder", "bob@builder.dev"}
 	commit := func(author who, authored, committed, path, content, message string) string {
-		t.Helper()
+		tb.Helper()
 		full := filepath.Join(work, filepath.FromSlash(path))
 		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-			t.Fatal(err)
+			tb.Fatal(err)
 		}
-		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
-			t.Fatal(err)
+		if err := os.WriteFile(full, []byte(content), 0o600); err != nil {
+			tb.Fatal(err)
 		}
 		env := []string{
 			"GIT_AUTHOR_NAME=" + author.name,
@@ -115,7 +115,7 @@ func NewHistory(t testing.TB) History {
 
 	bare := filepath.Join(h.Root, "acme", "history.git")
 	if err := os.MkdirAll(filepath.Dir(bare), 0o755); err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	git(nil, "clone", "-q", "--bare", work, bare)
 	return h

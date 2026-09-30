@@ -10,7 +10,9 @@ import (
 )
 
 var (
-	ErrNotFound        = errors.New("not found")
+	// ErrNotFound reports a repository, ref or path that does not exist.
+	ErrNotFound = errors.New("not found")
+	// ErrInvalidArgument reports a malformed name, rev, path or query.
 	ErrInvalidArgument = errors.New("invalid argument")
 )
 
@@ -77,7 +79,7 @@ type Repo interface {
 	Blame(ctx context.Context, commit, path string) ([]BlameRange, error)
 }
 
-// RepoInfo summarises a repository for listings.
+// RepoInfo summarizes a repository for listings.
 type RepoInfo struct {
 	Name          string    `json:"name"`
 	Description   string    `json:"description"`
@@ -85,11 +87,13 @@ type RepoInfo struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
+// ActivityWeeks and ContributorWeeks set how far back a RepoSummary looks.
 const (
 	ActivityWeeks    = 12
 	ContributorWeeks = 4
 )
 
+// RepoSummary is one row of the repository listing.
 type RepoSummary struct {
 	RepoInfo
 	WorkTree    bool           `json:"work_tree"`
@@ -104,6 +108,7 @@ type RepoSummary struct {
 	Contributors []string `json:"contributors"`
 }
 
+// CommitSummary is the short form of a commit shown in listings.
 type CommitSummary struct {
 	Hash    string    `json:"hash"`
 	Subject string    `json:"subject"`
@@ -124,12 +129,14 @@ type ActivityQuery struct {
 	Limit int
 }
 
+// Activity holds the recent commits, tags and branches across repositories, newest first.
 type Activity struct {
 	Commits  []ActivityCommit `json:"commits"`
 	Tags     []ActivityTag    `json:"tags"`
 	Branches []ActivityBranch `json:"branches"`
 }
 
+// ActivityCommit is a commit in an activity feed, with the ref it was found on.
 type ActivityCommit struct {
 	Repo        string    `json:"repo"`
 	Hash        string    `json:"hash"`
@@ -139,6 +146,7 @@ type ActivityCommit struct {
 	Ref         string    `json:"ref"`
 }
 
+// ActivityTag is a tag in an activity feed. Previous names the tag before it in the same repository.
 type ActivityTag struct {
 	Repo     string    `json:"repo"`
 	Name     string    `json:"name"`
@@ -158,20 +166,24 @@ type ActivityBranch struct {
 	Behind    int       `json:"behind"`
 }
 
+// Ref is a branch or a tag peeled to its commit.
 type Ref struct {
 	Name      string    `json:"name"`
 	Commit    string    `json:"commit"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// Refs lists a repository's branches and tags. Default names the default branch.
 type Refs struct {
 	Default  string `json:"default"`
 	Branches []Ref  `json:"branches"`
 	Tags     []Ref  `json:"tags"`
 }
 
+// EntryType is the kind of a tree entry.
 type EntryType string
 
+// Tree entry kinds.
 const (
 	EntryTree      EntryType = "tree"
 	EntryBlob      EntryType = "blob"
@@ -179,6 +191,7 @@ const (
 	EntrySubmodule EntryType = "submodule"
 )
 
+// TreeEntry is one child of a tree. Mode is the git file mode, such as "100644".
 type TreeEntry struct {
 	Name string    `json:"name"`
 	Path string    `json:"path"`
@@ -187,6 +200,7 @@ type TreeEntry struct {
 	Mode string    `json:"mode"`
 }
 
+// Blob is file content read up to a limit. Truncated marks content cut at that limit.
 type Blob struct {
 	Path      string
 	Size      int64
@@ -195,6 +209,7 @@ type Blob struct {
 	Truncated bool
 }
 
+// LogQuery pages through the history reachable from Commit and not from Exclude.
 type LogQuery struct {
 	Commit  string
 	Exclude string
@@ -208,8 +223,10 @@ type LogQuery struct {
 	MaxScan int
 }
 
+// DateField picks the author or the committer date.
 type DateField string
 
+// Date fields a log filter or histogram reads.
 const (
 	DateAuthor    DateField = "author"
 	DateCommitter DateField = "committer"
@@ -234,8 +251,10 @@ type History struct {
 	Partial bool
 }
 
+// Bucket is the width of a histogram bucket.
 type Bucket string
 
+// Histogram bucket widths.
 const (
 	BucketDay   Bucket = "day"
 	BucketWeek  Bucket = "week"
@@ -249,6 +268,7 @@ type HistogramQuery struct {
 	Until  time.Time
 }
 
+// HistogramBucket counts the commits from Start up to the next bucket.
 type HistogramBucket struct {
 	Start time.Time `json:"start"`
 	Count int       `json:"count"`
@@ -261,12 +281,14 @@ type Histogram struct {
 	Last    *time.Time        `json:"last"`
 }
 
+// Signature is an author or committer.
 type Signature struct {
 	Name  string    `json:"name"`
 	Email string    `json:"email"`
 	Date  time.Time `json:"date"`
 }
 
+// Commit is a parsed commit object.
 type Commit struct {
 	Hash      string    `json:"hash"`
 	Parents   []string  `json:"parents"`
@@ -276,8 +298,10 @@ type Commit struct {
 	Body      string    `json:"body"`
 }
 
+// FileStatus is how a diff changed a file.
 type FileStatus string
 
+// File statuses a diff reports.
 const (
 	StatusAdded    FileStatus = "added"
 	StatusModified FileStatus = "modified"
@@ -298,6 +322,7 @@ type FileDiff struct {
 	Hunks     []Hunk     `json:"hunks"`
 }
 
+// Hunk is one block of a unified diff.
 type Hunk struct {
 	OldStart int    `json:"old_start"`
 	OldLines int    `json:"old_lines"`
@@ -307,14 +332,17 @@ type Hunk struct {
 	Lines    []Line `json:"lines"`
 }
 
+// LineType marks a diff line as context, added or deleted.
 type LineType string
 
+// Diff line types.
 const (
 	LineContext LineType = "context"
 	LineAdd     LineType = "add"
 	LineDel     LineType = "del"
 )
 
+// Line is one diff line. Old and New hold its line numbers on each side, nil where it has none.
 type Line struct {
 	Type LineType `json:"type"`
 	Old  *int     `json:"old"`
@@ -322,6 +350,7 @@ type Line struct {
 	Text string   `json:"text"`
 }
 
+// BlameCommit is the commit a blame range points at.
 type BlameCommit struct {
 	Hash    string    `json:"hash"`
 	Subject string    `json:"subject"`

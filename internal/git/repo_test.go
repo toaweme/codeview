@@ -263,6 +263,7 @@ func Test_CLIRepo_Diff(t *testing.T) {
 		check func(t *testing.T, files []git.FileDiff)
 	}{
 		{"root", "", f.Initial, func(t *testing.T, files []git.FileDiff) {
+			t.Helper()
 			if len(files) != 3 {
 				t.Fatalf("got %d files", len(files))
 			}
@@ -276,6 +277,7 @@ func Test_CLIRepo_Diff(t *testing.T) {
 			}
 		}},
 		{"binary and modify", f.Initial, f.Second, func(t *testing.T, files []git.FileDiff) {
+			t.Helper()
 			byPath := map[string]git.FileDiff{}
 			for _, fd := range files {
 				byPath[fd.Path] = fd
@@ -298,6 +300,7 @@ func Test_CLIRepo_Diff(t *testing.T) {
 			}
 		}},
 		{"rename and spaced add", f.Second, f.Third, func(t *testing.T, files []git.FileDiff) {
+			t.Helper()
 			byPath := map[string]git.FileDiff{}
 			for _, fd := range files {
 				byPath[fd.Path] = fd

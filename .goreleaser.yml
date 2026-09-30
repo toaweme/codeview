@@ -1,0 +1,147 @@
+version: 2
+
+project_name: codeview
+
+before:
+  hooks:
+    - go mod download
+    # the binary embeds ui/dist, so the UI is built before any go build runs.
+    - npm --prefix ui ci
+    - npm --prefix ui run build
+
+builds:
+  - id: codeview
+    main: ./cmd/codeview
+    binary: codeview
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # reproducible builds: pin the binary's build time to the commit time.
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - ids: [codeview]
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x64
+      {{- else if eq .Arch "386" }}x32
+      {{- else }}{{ .Arch }}{{ end }}
+
+checksum:
+  name_template: "checksums.txt"
+
+# keyless cosign signing of the checksums file. Verifying checksums.txt
+# transitively verifies every archive listed in it, so one signature covers the
+# whole release. Needs cosign in CI and an OIDC token (id-token: write).
+signs:
+  - id: checksum
+    cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - "sign-blob"
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
+# one multi-arch image, built from the linux binaries above. The Dockerfile
+# copies each platform's binary from the $TARGETPLATFORM folder goreleaser lays out.
+dockers_v2:
+  - id: codeview
+    ids: [codeview]
+    dockerfile: Dockerfile
+    images:
+      - ghcr.io/toaweme/codeview
+    tags:
+      - "{{ .Version }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      org.opencontainers.image.title: "{{ .ProjectName }}"
+      org.opencontainers.image.description: "Read-only web UI for git repositories"
+      org.opencontainers.image.source: "https://github.com/toaweme/codeview"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+
+# Homebrew distributes prebuilt binaries as casks (formulae are meant to build
+# from source). `brew install toaweme/tap/codeview` resolves the cask on macOS.
+homebrew_casks:
+  - name: codeview
+    directory: Casks
+    homepage: "https://github.com/toaweme/codeview"
+    description: "Read-only web UI for git repositories"
+    # one shared tap holds a Casks/<project>.rb per project, so every toaweme
+    # tool installs as `brew install toaweme/tap/<project>`.
+    repository:
+      owner: toaweme
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    # don't push a cask for pre-release tags (e.g. v1.0.0-rc1).
+    skip_upload: auto
+    # the release binaries are unsigned, so macOS Gatekeeper quarantines them and
+    # blocks the first run. Strip the attribute on install.
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/codeview"]
+          end
+
+scoops:
+  - name: codeview
+    homepage: "https://github.com/toaweme/codeview"
+    description: "Read-only web UI for a folder of git repositories"
+    license: Apache-2.0
+    # one shared bucket holds a <project>.json per project, so every toaweme
+    # tool installs as `scoop install toaweme/<project>` once the bucket is added.
+    repository:
+      owner: toaweme
+      name: scoop-bucket
+      token: "{{ .Env.SCOOP_BUCKET_TOKEN }}"
+    # don't push a manifest for pre-release tags (e.g. v1.0.0-rc1).
+    skip_upload: auto
+
+changelog:
+  # keep this false. The release notes come from care's own --release-notes file
+  # (see release.yml), which already bypasses goreleaser's commit changelog.
+  disable: false
+
+release:
+  # mark vX.Y.Z-rc / -beta / -alpha tags as GitHub pre-releases automatically.
+  prerelease: auto
+  footer: |
+    ## Install
+
+    ```sh
+    # docker
+    docker run -p 8080:8080 -v /srv/git:/repos:ro ghcr.io/toaweme/codeview:{{ .Version }}
+
+    # homebrew (macos)
+    brew install toaweme/tap/codeview
+
+    # scoop (windows)
+    scoop bucket add toaweme https://github.com/toaweme/scoop-bucket
+    scoop install toaweme/codeview
+
+    # binary (linux x64; swap os/arch as needed)
+    wget -qO- https://github.com/toaweme/codeview/releases/download/{{ .Tag }}/codeview_{{ .Version }}_linux_x64.tar.gz | tar xz
+    ```

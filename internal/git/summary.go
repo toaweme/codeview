@@ -16,6 +16,7 @@ import (
 	"time"
 )
 
+// MaxActivityLimit caps an ActivityQuery's Limit, and DefaultActivityLimit applies when it is zero.
 const (
 	MaxActivityLimit     = 50
 	DefaultActivityLimit = 30
@@ -35,6 +36,7 @@ type repoSummary struct {
 	branches []ActivityBranch
 }
 
+// Activity merges the recent commits, tags and branches of the repositories q selects.
 func (s *CLIStore) Activity(ctx context.Context, q ActivityQuery) (Activity, error) {
 	_, names, err := s.located(ctx)
 	if err != nil {
@@ -103,7 +105,7 @@ func (s *CLIStore) summaries(ctx context.Context, names []string) ([]*repoSummar
 	wg.Wait()
 	for i, err := range errs {
 		if err != nil {
-			return nil, fmt.Errorf("failed to summarise repository %q: %w", names[i], err)
+			return nil, fmt.Errorf("failed to summarize repository %q: %w", names[i], err)
 		}
 	}
 	return out, nil
@@ -126,7 +128,7 @@ func (s *CLIStore) summary(ctx context.Context, name string, end time.Time) (*re
 	if ok && cached.key == key {
 		return cached.sum, nil
 	}
-	sum, err := repo.summarise(ctx, end)
+	sum, err := repo.summarize(ctx, end)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +184,7 @@ func fingerprint(dir string) (string, error) {
 
 const summaryRefFormat = "%(refname)%00%(objectname)%00%(*objectname)%00%(creatordate:iso-strict)%00%(contents:subject)"
 
-func (r *cliRepo) summarise(ctx context.Context, end time.Time) (*repoSummary, error) {
+func (r *cliRepo) summarize(ctx context.Context, end time.Time) (*repoSummary, error) {
 	info, err := r.Info(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read repository info: %w", err)

@@ -2,8 +2,11 @@ package scan
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
+	"syscall"
 	"testing"
 
 	"github.com/toaweme/codeview/internal/git/gittest"
@@ -44,10 +47,14 @@ type want struct {
 
 func touch(t *testing.T, path string) {
 	t.Helper()
-	if err := os.WriteFile(path, nil, 0o644); err != nil {
+	if err := os.WriteFile(path, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
 }
+
+// errPrivilegeNotHeld is ERROR_PRIVILEGE_NOT_HELD, which windows returns for a symlink
+// created without developer mode or admin rights.
+const errPrivilegeNotHeld = syscall.Errno(1314)
 
 func symlink(t *testing.T, target, link string) {
 	t.Helper()
@@ -55,6 +62,9 @@ func symlink(t *testing.T, target, link string) {
 		t.Fatal(err)
 	}
 	if err := os.Symlink(target, link); err != nil {
+		if runtime.GOOS == "windows" && errors.Is(err, errPrivilegeNotHeld) {
+			t.Skip("creating symlinks needs developer mode or admin rights on windows")
+		}
 		t.Fatal(err)
 	}
 }
@@ -69,6 +79,7 @@ func Test_Scanner_Locate(t *testing.T) {
 		{
 			name: "bare without origin takes its folder path",
 			setup: func(t *testing.T, dir, _ string) {
+				t.Helper()
 				gittest.Init(t, filepath.Join(dir, "seed", "chi.git"), true, "")
 			},
 			want: []want{{name: "seed/chi"}},
@@ -76,6 +87,7 @@ func Test_Scanner_Locate(t *testing.T) {
 		{
 			name: "working copy takes its origin",
 			setup: func(t *testing.T, dir, _ string) {
+				t.Helper()
 				gittest.Init(t, filepath.Join(dir, "gopath", "cli"), false, "git@github.com:toaweme/cli.git")
 			},
 			want: []want{{name: "github.com/toaweme/cli", workTree: true}},
@@ -83,6 +95,7 @@ func Test_Scanner_Locate(t *testing.T) {
 		{
 			name: "public comes from git-daemon-export-ok",
 			setup: func(t *testing.T, dir, _ string) {
+				t.Helper()
 				gitDir := gittest.Init(t, filepath.Join(dir, "log.git"), true, "https://github.com/toaweme/log")
 				touch(t, filepath.Join(gitDir, "git-daemon-export-ok"))
 			},
@@ -91,11 +104,12 @@ func Test_Scanner_Locate(t *testing.T) {
 		{
 			name: "a .git file is skipped with everything under it",
 			setup: func(t *testing.T, dir, _ string) {
+				t.Helper()
 				sub := filepath.Join(dir, "worktree")
 				if err := os.MkdirAll(sub, 0o755); err != nil {
 					t.Fatal(err)
 				}
-				if err := os.WriteFile(filepath.Join(sub, ".git"), []byte("gitdir: /elsewhere\n"), 0o644); err != nil {
+				if err := os.WriteFile(filepath.Join(sub, ".git"), []byte("gitdir: /elsewhere\n"), 0o600); err != nil {
 					t.Fatal(err)
 				}
 				gittest.Init(t, filepath.Join(sub, "nested.git"), true, "")
@@ -105,6 +119,7 @@ func Test_Scanner_Locate(t *testing.T) {
 		{
 			name: "scanning stops at a repository",
 			setup: func(t *testing.T, dir, _ string) {
+				t.Helper()
 				outer := filepath.Join(dir, "outer")
 				gittest.Init(t, outer, false, "")
 				gittest.Init(t, filepath.Join(outer, "vendor", "inner"), false, "")
@@ -114,6 +129,7 @@ func Test_Scanner_Locate(t *testing.T) {
 		{
 			name: "dot folders are skipped",
 			setup: func(t *testing.T, dir, _ string) {
+				t.Helper()
 				gittest.Init(t, filepath.Join(dir, ".cache", "x.git"), true, "")
 			},
 			want: nil,
@@ -121,6 +137,7 @@ func Test_Scanner_Locate(t *testing.T) {
 		{
 			name: "symlinked folders are followed once",
 			setup: func(t *testing.T, dir, outside string) {
+				t.Helper()
 				gittest.Init(t, filepath.Join(outside, "repos", "seed", "chi.git"), true, "")
 				symlink(t, filepath.Join(outside, "repos"), filepath.Join(dir, "a"))
 				symlink(t, filepath.Join(outside, "repos"), filepath.Join(dir, "b"))
@@ -131,6 +148,7 @@ func Test_Scanner_Locate(t *testing.T) {
 		{
 			name: "a clashing origin falls back to the folder path",
 			setup: func(t *testing.T, dir, _ string) {
+				t.Helper()
 				origin := "git@github.com:toaweme/cli.git"
 				gittest.Init(t, filepath.Join(dir, "a", "cli"), false, origin)
 				gittest.Init(t, filepath.Join(dir, "b", "cli.git"), true, origin)
@@ -143,6 +161,7 @@ func Test_Scanner_Locate(t *testing.T) {
 		{
 			name: "an invalid origin falls back to the folder path",
 			setup: func(t *testing.T, dir, _ string) {
+				t.Helper()
 				gittest.Init(t, filepath.Join(dir, "odd"), false, "https://example.com/owner/.hidden")
 			},
 			want: []want{{name: "odd", workTree: true}},
@@ -151,6 +170,7 @@ func Test_Scanner_Locate(t *testing.T) {
 			name:     "the depth cap bounds the walk",
 			maxDepth: 2,
 			setup: func(t *testing.T, dir, _ string) {
+				t.Helper()
 				gittest.Init(t, filepath.Join(dir, "a", "shallow.git"), true, "")
 				gittest.Init(t, filepath.Join(dir, "a", "b", "deep.git"), true, "")
 			},
