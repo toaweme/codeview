@@ -7,7 +7,10 @@ before:
     - go mod download
     # the binary embeds ui/dist, so the UI is built before any go build runs.
     - npm --prefix ui ci
-    - npm --prefix ui run build
+    - cmd: npm --prefix ui run build
+      env:
+        - VITE_VERSION={{ .Version }}
+        - VITE_COMMIT={{ .Commit }}
 
 builds:
   - id: codeview
@@ -27,7 +30,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -s -w -X main.version={{ .Version }}
+      - -s -w -X main.version={{ .Version }} -X main.commit={{ .Commit }}
 
 archives:
   - ids: [codeview]

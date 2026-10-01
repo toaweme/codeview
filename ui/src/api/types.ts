@@ -14,6 +14,8 @@ export type Repo = {
   activity: number[]
   contributors?: string[]
   work_tree?: boolean
+  // error marks a repository the server could not read, listed with only its name
+  error?: string
 }
 
 // RepoMode is `public` when only repositories exported to git-daemon are
@@ -42,10 +44,33 @@ export type ActivityBranch = {
   behind: number
 }
 
+// error is a short reason safe to show, and the server logs the details
+export type RepoFailure = { repo: string; error: string }
+
 export type Activity = {
   commits: ActivityCommit[]
   tags: ActivityTag[]
   branches: ActivityBranch[]
+  failed: RepoFailure[]
+}
+
+// partial marks a filtered page that stopped scanning early, which next continues
+export type CommitFeed = {
+  commits: ActivityCommit[]
+  next: string
+  partial?: boolean
+  // scanned counts the commits the page read, matching or not
+  scanned: number
+  failed: RepoFailure[]
+}
+
+// total and versions count every tag the query selects, across all pages
+export type ReleaseFeed = {
+  releases: ActivityTag[]
+  next: string
+  total: number
+  versions: number
+  failed: RepoFailure[]
 }
 
 export type Ref = { name: string; commit: string; updated_at: string }

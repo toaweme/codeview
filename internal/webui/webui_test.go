@@ -24,9 +24,9 @@ func Test_Handler(t *testing.T) {
 		body   string
 		cache  string
 	}{
-		{"index", built, "/", 200, "<html>app</html>", "no-store"},
-		{"index by name", built, "/index.html", 200, "<html>app</html>", "no-store"},
-		{"client route", built, "/acme/widgets/tree/main/src", 200, "<html>app</html>", "no-store"},
+		{"index", built, "/", 200, "<html>app</html>", "no-cache"},
+		{"index by name", built, "/index.html", 200, "<html>app</html>", "no-cache"},
+		{"client route", built, "/acme/widgets/tree/main/src", 200, "<html>app</html>", "no-cache"},
 		{"asset", built, "/assets/app-1.js", 200, "console.log(1)", "public, max-age=31536000, immutable"},
 		{"static file", built, "/favicon.svg", 200, "<svg/>", ""},
 		{"not built", fstest.MapFS{}, "/", 503, "task build", ""},

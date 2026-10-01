@@ -1,8 +1,8 @@
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
+  CircleQuestionMark,
   Code2,
   GitCompareArrows,
-  Keyboard,
   Library,
   Moon,
   PanelLeft,
@@ -103,8 +103,8 @@ export function AppShell({
     },
     {
       id: 'shell:shortcuts',
-      label: 'Show keyboard shortcuts',
-      icon: Keyboard,
+      label: 'Help and keyboard shortcuts',
+      icon: CircleQuestionMark,
       shortcut: 'help.open',
       run: openKeyboardHelp,
     },
@@ -186,12 +186,12 @@ export function AppShell({
           <Moon className="block dark:hidden" />
         </RailButton>
         <RailButton
-          label="Keyboard shortcuts"
+          label="Help"
           shortcut="help.open"
           onClick={openKeyboardHelp}
           className="hidden sm:grid"
         >
-          <Keyboard />
+          <CircleQuestionMark />
         </RailButton>
       </nav>
       {wide

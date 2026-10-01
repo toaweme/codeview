@@ -30,44 +30,52 @@ type cachedSummary struct {
 }
 
 type repoSummary struct {
-	summary  RepoSummary
+	summary RepoSummary
+	// tip is the default branch's commit the summary was read at.
+	tip      string
 	commits  []ActivityCommit
 	tags     []ActivityTag
 	branches []ActivityBranch
+	// releases holds every tag, where tags keeps only the newest.
+	releases []release
+}
+
+// summaryCall lets concurrent readers of one repository share a single summarize.
+type summaryCall struct {
+	done chan struct{}
+	sum  *repoSummary
+	err  error
 }
 
 // Activity merges the recent commits, tags and branches of the repositories q selects.
 func (s *CLIStore) Activity(ctx context.Context, q ActivityQuery) (Activity, error) {
-	_, names, err := s.located(ctx)
+	var repos []string
+	if q.Repo != "" {
+		repos = []string{q.Repo}
+	}
+	names, err := s.selected(ctx, q.Org, repos)
 	if err != nil {
 		return Activity{}, err
-	}
-	org := strings.Trim(q.Org, "/")
-	repo := strings.Trim(q.Repo, "/")
-	if org != "" || repo != "" {
-		kept := names[:0:0]
-		for _, name := range names {
-			if (org == "" || strings.HasPrefix(name, org+"/")) && (repo == "" || name == repo) {
-				kept = append(kept, name)
-			}
-		}
-		names = kept
 	}
 	limit := q.Limit
 	if limit <= 0 {
 		limit = DefaultActivityLimit
 	}
 	limit = min(limit, MaxActivityLimit)
-	summaries, err := s.summaries(ctx, names)
+	summaries, failed, err := s.summaries(ctx, names)
 	if err != nil {
 		return Activity{}, err
 	}
 	act := Activity{
+		Failed:   failed,
 		Commits:  []ActivityCommit{},
 		Tags:     []ActivityTag{},
 		Branches: []ActivityBranch{},
 	}
 	for _, sum := range summaries {
+		if sum == nil {
+			continue
+		}
 		act.Commits = append(act.Commits, sum.commits...)
 		act.Tags = append(act.Tags, sum.tags...)
 		act.Branches = append(act.Branches, sum.branches...)
@@ -87,28 +95,38 @@ func (s *CLIStore) Activity(ctx context.Context, q ActivityQuery) (Activity, err
 	return act, nil
 }
 
-func (s *CLIStore) summaries(ctx context.Context, names []string) ([]*repoSummary, error) {
+// summaries leaves a nil summary for every repository it reports as failed,
+// and fails as a whole only when ctx ends.
+func (s *CLIStore) summaries(ctx context.Context, names []string) ([]*repoSummary, []RepoFailure, error) {
 	end := activityEnd(s.cfg.Now())
 	out := make([]*repoSummary, len(names))
 	errs := make([]error, len(names))
-	sem := make(chan struct{}, summaryWorkers)
-	var wg sync.WaitGroup
-	for i, name := range names {
-		wg.Add(1)
-		sem <- struct{}{}
-		go func() {
-			defer wg.Done()
-			defer func() { <-sem }()
-			out[i], errs[i] = s.summary(ctx, name, end)
-		}()
+	err := s.each(ctx, len(names), func(i int) {
+		out[i], errs[i] = s.summary(ctx, names[i], end)
+	})
+	if err == nil {
+		err = ctx.Err()
 	}
-	wg.Wait()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to summarize repositories: %w", err)
+	}
+	failed := []RepoFailure{}
 	for i, err := range errs {
 		if err != nil {
-			return nil, fmt.Errorf("failed to summarize repository %q: %w", names[i], err)
+			out[i] = nil
+			failed = append(failed, repoFailure(names[i], fmt.Errorf("failed to summarize repository %q: %w", names[i], err)))
 		}
 	}
-	return out, nil
+	return out, failed, nil
+}
+
+// repoFailure keeps the cause for the log and tells readers only what kind of failure it was.
+func repoFailure(name string, err error) RepoFailure {
+	msg := "repository could not be read"
+	if errors.Is(err, ErrNotFound) {
+		msg = "repository not found"
+	}
+	return RepoFailure{Repo: name, Error: msg, Cause: err}
 }
 
 func (s *CLIStore) summary(ctx context.Context, name string, end time.Time) (*repoSummary, error) {
@@ -122,24 +140,102 @@ func (s *CLIStore) summary(ctx context.Context, name string, end time.Time) (*re
 	}
 	// the weekly buckets shift with the day
 	key += "@" + end.Format(time.DateOnly)
-	s.cacheMu.Lock()
-	cached, ok := s.cache[name]
-	s.cacheMu.Unlock()
-	if ok && cached.key == key {
-		return cached.sum, nil
+	flight := name + "\x00" + key
+	for {
+		s.cacheMu.Lock()
+		if cached, ok := s.cache[name]; ok && cached.key == key {
+			s.cacheMu.Unlock()
+			return cached.sum, nil
+		}
+		call, waiting := s.calls[flight]
+		if !waiting {
+			call = &summaryCall{done: make(chan struct{})}
+			s.calls[flight] = call
+		}
+		s.cacheMu.Unlock()
+		if !waiting {
+			call.sum, call.err = repo.summarize(ctx, end)
+			s.cacheMu.Lock()
+			if call.err == nil {
+				s.cache[name] = cachedSummary{key: key, sum: call.sum}
+			}
+			delete(s.calls, flight)
+			s.cacheMu.Unlock()
+			close(call.done)
+			return call.sum, call.err
+		}
+		select {
+		case <-call.done:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		// a leader whose own request went away fails for that reason alone, so try again
+		if call.err != nil && isContextErr(call.err) && ctx.Err() == nil {
+			continue
+		}
+		return call.sum, call.err
 	}
-	sum, err := repo.summarize(ctx, end)
-	if err != nil {
-		return nil, err
+}
+
+func isContextErr(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+}
+
+// each runs fn for every index up to n on the store's shared summary workers,
+// so requests and background warming together never run more than summaryWorkers at once.
+func (s *CLIStore) each(ctx context.Context, n int, fn func(i int)) error {
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	for i := range n {
+		select {
+		case s.workers <- struct{}{}:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		wg.Go(func() {
+			defer func() { <-s.workers }()
+			fn(i)
+		})
 	}
-	s.cacheMu.Lock()
-	s.cache[name] = cachedSummary{key: key, sum: sum}
-	s.cacheMu.Unlock()
-	return sum, nil
+	return nil
 }
 
 func activityEnd(now time.Time) time.Time {
 	return now.UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
+}
+
+// Fingerprint stats the refs and description of the repository called name.
+func (s *CLIStore) Fingerprint(ctx context.Context, name string) (string, error) {
+	repo, err := s.open(ctx, name)
+	if err != nil {
+		return "", err
+	}
+	key, err := fingerprint(repo.dir)
+	if err != nil {
+		return "", fmt.Errorf("failed to fingerprint repository %q: %w", name, err)
+	}
+	return key, nil
+}
+
+// ListFingerprint combines the fingerprints of every served repository with the day
+// the weekly activity buckets end on, since a listing changes with either.
+func (s *CLIStore) ListFingerprint(ctx context.Context) (string, error) {
+	locs, names, err := s.located(ctx)
+	if err != nil {
+		return "", err
+	}
+	h := fnv.New64a()
+	fmt.Fprintf(h, "%s\x00", activityEnd(s.cfg.Now()).Format(time.DateOnly))
+	for _, name := range names {
+		loc := locs[name]
+		key, err := fingerprint(loc.GitDir)
+		if err != nil {
+			// an unreadable repository is listed with an error, so it tags the listing the same way
+			key = "unreadable"
+		}
+		fmt.Fprintf(h, "%s\x00%s\x00%t\x00%s\x00", name, loc.GitDir, loc.WorkTree, key)
+	}
+	return strconv.FormatUint(h.Sum64(), 16), nil
 }
 
 // fingerprint stats what ref updates and description edits touch, far cheaper than asking git.
@@ -158,8 +254,7 @@ func fingerprint(dir string) (string, error) {
 		}
 		stat(file, info)
 	}
-	refs := filepath.Join(dir, "refs")
-	err := filepath.WalkDir(refs, func(path string, d fs.DirEntry, err error) error {
+	walk := func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				return nil
@@ -175,9 +270,12 @@ func fingerprint(dir string) (string, error) {
 		}
 		stat(path, info)
 		return nil
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to walk refs: %w", err)
+	}
+	// a reftable repository keeps its refs under reftable/ and leaves refs/ as a stub
+	for _, sub := range []string{"refs", "reftable"} {
+		if err := filepath.WalkDir(filepath.Join(dir, sub), walk); err != nil {
+			return "", fmt.Errorf("failed to walk %s: %w", sub, err)
+		}
 	}
 	return strconv.FormatUint(h.Sum64(), 16), nil
 }
@@ -212,6 +310,7 @@ func (r *cliRepo) summarize(ctx context.Context, end time.Time) (*repoSummary, e
 	}
 	var tip string
 	var tags []Tag
+	var all []ActivityTag
 	for line := range strings.SplitSeq(string(out), "\n") {
 		f := strings.Split(line, "\x00")
 		if len(f) != 5 {
@@ -240,6 +339,7 @@ func (r *cliRepo) summarize(ctx context.Context, end time.Time) (*repoSummary, e
 			}
 		} else if name, ok := strings.CutPrefix(f[0], "refs/tags/"); ok {
 			sum.summary.TagCount++
+			all = append(all, ActivityTag{Repo: r.name, Name: name, Commit: commit, TaggedAt: when})
 			if len(tags) <= MaxActivityLimit {
 				tags = append(tags, Tag{Name: name, Commit: commit, TaggedAt: when})
 			}
@@ -255,6 +355,8 @@ func (r *cliRepo) summarize(ctx context.Context, end time.Time) (*repoSummary, e
 	if len(tags) > 0 {
 		sum.summary.LatestTag = &tags[0]
 	}
+	sum.releases = buildReleases(all)
+	sum.tip = tip
 	if tip == "" {
 		return sum, nil
 	}
@@ -275,15 +377,7 @@ func (r *cliRepo) summarize(ctx context.Context, end time.Time) (*repoSummary, e
 		return nil, fmt.Errorf("failed to read recent history: %w", err)
 	}
 	for _, c := range recent.Commits {
-		commit := ActivityCommit{
-			Repo:        r.name,
-			Hash:        c.Hash,
-			Subject:     c.Subject,
-			Author:      c.Author,
-			CommittedAt: c.Committer.Date,
-			Ref:         info.DefaultBranch,
-		}
-		sum.commits = append(sum.commits, commit)
+		sum.commits = append(sum.commits, activityCommit(r.name, info.DefaultBranch, c))
 	}
 	if len(recent.Commits) > 0 {
 		c := recent.Commits[0]

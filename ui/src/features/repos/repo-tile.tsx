@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { GitBranch, Tag } from 'lucide-react'
+import { GitBranch, Tag, TriangleAlert } from 'lucide-react'
 import type { Repo } from '@/api/types'
 import { Badge } from '@/components/badge'
 import { Highlighted } from '@/components/highlighted'
@@ -10,6 +10,7 @@ import { formatFull, relativeTime } from '@/lib/time'
 import { repoLink } from '@/lib/url'
 import { RepoGlyph } from './repo-glyph'
 import { Sparkline } from './sparkline'
+import { UNREADABLE, unreadableTitle } from './unreadable'
 
 const TILE = 'rounded-2xl bg-island-muted p-4'
 
@@ -41,13 +42,16 @@ export function RepoTile({
     ? repoLink(repo.name, { kind: 'tree', ref: tag.name, path: '' })
     : undefined
   const c = repo.last_commit
+  const broken = unreadableTitle(repo)
   return (
     <li
       data-index={index}
+      title={broken}
       className={cn(
         TILE,
         'relative flex flex-col gap-3 transition-colors duration-75',
         selected && RAISED,
+        broken && 'ring-1 ring-del/30 ring-inset',
       )}
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
@@ -55,17 +59,23 @@ export function RepoTile({
       <div className="flex items-start gap-3">
         <RepoGlyph name={repo.name} className="mt-0.5" />
         <div className="min-w-0 flex-1">
-          <Link
-            {...home}
-            {...preload(home)}
-            className={cn(
-              'block truncate font-semibold text-lg tracking-tight outline-none',
-              "after:absolute after:inset-0 after:rounded-2xl after:content-['']",
-              'focus-visible:after:outline-2 focus-visible:after:outline-ring',
-            )}
-          >
-            <Highlighted text={name} positions={positions} />
-          </Link>
+          {broken ? (
+            <span className="block truncate font-semibold text-lg text-muted-foreground tracking-tight">
+              <Highlighted text={name} positions={positions} />
+            </span>
+          ) : (
+            <Link
+              {...home}
+              {...preload(home)}
+              className={cn(
+                'block truncate font-semibold text-lg tracking-tight outline-none',
+                "after:absolute after:inset-0 after:rounded-2xl after:content-['']",
+                'focus-visible:after:outline-2 focus-visible:after:outline-ring',
+              )}
+            >
+              <Highlighted text={name} positions={positions} />
+            </Link>
+          )}
           {repo.description && (
             <p className="truncate text-muted-foreground text-sm">
               {repo.description}
@@ -75,7 +85,12 @@ export function RepoTile({
         <Sparkline weeks={repo.activity} />
       </div>
       <div className="h-[42px] min-w-0">
-        {c ? (
+        {broken ? (
+          <p className="flex items-center gap-1.5 text-del">
+            <TriangleAlert className="size-4 shrink-0" aria-hidden />
+            {UNREADABLE}
+          </p>
+        ) : c ? (
           <>
             <p className="truncate">{c.subject}</p>
             <p className="flex min-w-0 gap-2 text-faint text-sm">

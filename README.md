@@ -77,7 +77,8 @@ bin/codeview serve --dir /srv/git
 
 ## Usage
 
-codeview walks `--dir` up to five folders deep, follows symlinks, and picks up bare repositories and working copies. Each repository is named after its `origin` remote, like `github.com/toaweme/cli`, or after its folder.
+Codeview walks `--dir` up to five folders deep, follows symlinks, and picks up bare repositories and working copies.
+Each repository is named after its `origin` remote, like `github.com/toaweme/cli`, or after its folder.
 
 Only public repositories are shown by default, the ones holding a `git-daemon-export-ok` file.
 
@@ -102,7 +103,7 @@ codeview serve --dir /srv/git
 
 ### soft-serve
 
-Point codeview at the `repos/` folder in soft-serve's data path. soft-serve tracks visibility in its own database, so touch `git-daemon-export-ok` in the repositories you want shown or use `--mode all`.
+Point Codeview at the `repos/` folder in soft-serve's data path. soft-serve tracks visibility in its own database, so touch `git-daemon-export-ok` in the repositories you want shown or use `--mode all`.
 
 ```bash
 codeview serve --dir /var/lib/soft-serve/repos
@@ -156,12 +157,40 @@ Every flag of `codeview serve` also reads an environment variable. The Docker im
 | `--port` | `CODEVIEW_PORT` | `8080` | Port to listen on |
 | `--git` | `CODEVIEW_GIT` | `git` | git executable |
 
-## Development
+## Deployment
 
-blink boots soft-serve in docker, mirrors `dev/gickup.yml`, links soft-serve and gickup into `.data/view`, and runs the backend on 8080 beside the vite dev server on 5173.
+### Repository maintenance
+
+Codeview never fetches, so keep the repositories in sync with whatever mirrors them.
+Optionally write a commit graph after each sync.
+It speeds up history and blame on large repositories.
 
 ```bash
-blink run
+git --git-dir=/srv/git/cli.git commit-graph write --reachable --changed-paths
+```
+
+### Limits
+
+Every uncached request runs git. Rate limit and cap concurrent requests in the reverse proxy, and bound the container.
+
+```bash
+docker run -d -p 8080:8080 --cpus 1 --memory 768m --pids-limit 256 \
+  -v /srv/git:/repos:ro \
+  ghcr.io/toaweme/codeview
+```
+
+### Caching
+
+API responses are `private, no-cache` with an ETag, so browsers revalidate and get a `304` until a ref moves.
+Hashed UI assets are cached for a year.
+A CDN in front needs no cache rules.
+
+## Development
+
+Our [Blink](https://github.com/toaweme/blink) config boots soft-serve in docker, mirrors `dev/gickup.yml`, links soft-serve and gickup into `.data/view`, and runs the backend on 8080 beside the vite dev server on 5173.
+
+```bash
+blink
 ```
 
 ```bash

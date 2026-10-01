@@ -126,7 +126,7 @@ export function OverviewTab({
 
   const open = (i: number) => {
     const r = results[i]?.repo
-    if (r) navigate(repoLink(r.name, { kind: 'tree', path: '' }))
+    if (r && !r.error) navigate(repoLink(r.name, { kind: 'tree', path: '' }))
   }
 
   return (

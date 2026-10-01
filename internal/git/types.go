@@ -55,6 +55,15 @@ func ParseMode(s string) (Mode, error) {
 type Store interface {
 	List(ctx context.Context) ([]RepoSummary, error)
 	Activity(ctx context.Context, q ActivityQuery) (Activity, error)
+	// Commits pages the default-branch history of the repositories q selects, newest first.
+	Commits(ctx context.Context, q FeedQuery) (CommitFeed, error)
+	// Releases pages the tags of the repositories q selects, newest first.
+	Releases(ctx context.Context, q FeedQuery) (ReleaseFeed, error)
+	// Fingerprint changes whenever a ref or the description of the repository called name changes.
+	Fingerprint(ctx context.Context, name string) (string, error)
+	// ListFingerprint changes whenever the served set of repositories,
+	// any of their fingerprints or the day of the activity window changes.
+	ListFingerprint(ctx context.Context) (string, error)
 	Open(ctx context.Context, name string) (Repo, error)
 	Close() error
 }
@@ -106,6 +115,10 @@ type RepoSummary struct {
 	// Contributors lists the distinct lowercased author emails on the default branch
 	// over the last ContributorWeeks, sorted, so an org can dedupe across repositories.
 	Contributors []string `json:"contributors"`
+	// Error marks a repository that could not be read, which carries only its name and
+	// work tree flag. It is safe to show anyone, and Cause holds the full error for the server log.
+	Error string `json:"error,omitempty"`
+	Cause error  `json:"-"`
 }
 
 // CommitSummary is the short form of a commit shown in listings.
@@ -134,6 +147,64 @@ type Activity struct {
 	Commits  []ActivityCommit `json:"commits"`
 	Tags     []ActivityTag    `json:"tags"`
 	Branches []ActivityBranch `json:"branches"`
+	Failed   []RepoFailure    `json:"failed"`
+}
+
+// DefaultFeedLimit applies when a FeedQuery's Limit is zero, and MaxFeedLimit caps it.
+const (
+	DefaultFeedLimit = 40
+	MaxFeedLimit     = 100
+)
+
+// FeedQuery pages a feed merged across repositories.
+// Cursor is the Next of the page before and empty for the first page.
+type FeedQuery struct {
+	Org string
+	// Repos narrows the feed to these names when it is not empty.
+	Repos []string
+	// Since drops commits committed before it.
+	Since time.Time
+	// Versions keeps only tags named like a version, such as "v1.2.3" or "tools/v0.4".
+	Versions bool
+	// Author keeps commits whose author name or email holds it, ignoring case.
+	Author string
+	// Message keeps commits whose message holds it, ignoring case.
+	Message string
+	Cursor  string
+	Limit   int
+}
+
+// RepoFailure names a repository a merged response skipped because it could not be read.
+// Error is safe to show anyone, and Cause holds the full error for the server log,
+// which can name filesystem paths.
+type RepoFailure struct {
+	Repo  string `json:"repo"`
+	Error string `json:"error"`
+	Cause error  `json:"-"`
+}
+
+// CommitFeed is one page of commits. Next is empty on the last page.
+// Partial means an author or message filter stopped scanning a repository early,
+// so the page may hold fewer matches than its limit while Next continues the scan.
+type CommitFeed struct {
+	Commits []ActivityCommit `json:"commits"`
+	Next    string           `json:"next"`
+	Partial bool             `json:"partial,omitempty"`
+	// Scanned counts the commits this page read across repositories, matching or not,
+	// so a reader can show how far a filtered search has gone.
+	Scanned int           `json:"scanned"`
+	Failed  []RepoFailure `json:"failed"`
+}
+
+// ReleaseFeed is one page of tags. Previous on each tag names the release before it
+// on the same version track, so "tools/v0.4" follows "tools/v0.3" and not "v2.0".
+// Total and Versions count every tag and every version tag the query selects, across all pages.
+type ReleaseFeed struct {
+	Releases []ActivityTag `json:"releases"`
+	Next     string        `json:"next"`
+	Total    int           `json:"total"`
+	Versions int           `json:"versions"`
+	Failed   []RepoFailure `json:"failed"`
 }
 
 // ActivityCommit is a commit in an activity feed, with the ref it was found on.

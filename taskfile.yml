@@ -4,13 +4,17 @@ vars:
   DATA: .data/soft-serve
   VIEW: .data/view
   GO_PKGS: ./...
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+  COMMIT:
+    sh: git rev-parse HEAD 2>/dev/null || true
 
 tasks:
   build:
     desc: Build the UI, then bin/codeview with ui/dist embedded
     cmds:
       - task: ui:build
-      - go build -o bin/codeview ./cmd/codeview
+      - go build -ldflags "-X main.version={{.VERSION}} -X main.commit={{.COMMIT}}" -o bin/codeview ./cmd/codeview
 
   test:
     desc: Run the Go tests
@@ -34,6 +38,9 @@ tasks:
     desc: Build the UI into ui/dist
     dir: ui
     deps: [ui:install]
+    env:
+      VITE_VERSION: '{{.VERSION}}'
+      VITE_COMMIT: '{{.COMMIT}}'
     cmds:
       - npm run build
 

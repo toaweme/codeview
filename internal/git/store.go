@@ -25,6 +25,9 @@ type Config struct {
 	// Rescan defaults to DefaultRescan.
 	Rescan time.Duration
 	Now    func() time.Time
+	// Warm summarizes every served repository in the background on Warm and after each rescan,
+	// so the first visitor of a day does not wait for every repository to be read.
+	Warm bool
 }
 
 // CLIStore reads the repositories its Locator finds with the git CLI.
@@ -41,6 +44,17 @@ type CLIStore struct {
 
 	cacheMu sync.Mutex
 	cache   map[string]cachedSummary
+	calls   map[string]*summaryCall
+
+	// workers bounds the summaries running at once across requests and warming.
+	workers chan struct{}
+
+	warmMu  sync.Mutex
+	warming bool
+	closed  bool
+	// stop cancels a warm in flight when the store closes.
+	stop  chan struct{}
+	warms sync.WaitGroup
 }
 
 var _ Store = (*CLIStore)(nil)
@@ -62,24 +76,85 @@ func NewCLIStore(cfg Config) *CLIStore {
 	if cfg.Now == nil {
 		cfg.Now = time.Now
 	}
-	return &CLIStore{cfg: cfg, repos: map[string]*cliRepo{}, cache: map[string]cachedSummary{}}
+	return &CLIStore{
+		cfg:     cfg,
+		repos:   map[string]*cliRepo{},
+		cache:   map[string]cachedSummary{},
+		calls:   map[string]*summaryCall{},
+		workers: make(chan struct{}, summaryWorkers),
+		stop:    make(chan struct{}),
+	}
 }
 
-// List summarizes every repository the store serves.
+// Warm summarizes every served repository in the background when Config.Warm is set.
+// It returns at once and does nothing while a warm is already running or once the store is closed.
+func (s *CLIStore) Warm() {
+	if !s.cfg.Warm {
+		return
+	}
+	s.warmMu.Lock()
+	defer s.warmMu.Unlock()
+	if s.warming || s.closed {
+		return
+	}
+	s.warming = true
+	s.warms.Go(func() {
+		defer func() {
+			s.warmMu.Lock()
+			s.warming = false
+			s.warmMu.Unlock()
+		}()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go func() {
+			select {
+			case <-s.stop:
+				cancel()
+			case <-ctx.Done():
+			}
+		}()
+		_, names, err := s.located(ctx)
+		if err != nil {
+			return
+		}
+		end := activityEnd(s.cfg.Now())
+		// a repository that fails here fails again for the request that needs it, which reports it
+		_ = s.each(ctx, len(names), func(i int) {
+			_, _ = s.summary(ctx, names[i], end)
+		})
+	})
+}
+
+// List summarizes every repository the store serves. A repository that cannot be read
+// stays in the list with Error set, so one broken mirror never hides the rest.
 func (s *CLIStore) List(ctx context.Context) ([]RepoSummary, error) {
 	locs, names, err := s.located(ctx)
 	if err != nil {
 		return nil, err
 	}
-	summaries, err := s.summaries(ctx, names)
+	summaries, failed, err := s.summaries(ctx, names)
 	if err != nil {
 		return nil, err
 	}
+	failures := make(map[string]RepoFailure, len(failed))
+	for _, f := range failed {
+		failures[f.Repo] = f
+	}
 	list := make([]RepoSummary, len(summaries))
 	for i, sum := range summaries {
-		list[i] = sum.summary
-		loc := locs[names[i]]
-		list[i].WorkTree = loc.WorkTree
+		if sum != nil {
+			list[i] = sum.summary
+		} else {
+			f := failures[names[i]]
+			list[i] = RepoSummary{
+				RepoInfo:     RepoInfo{Name: names[i]},
+				Activity:     make([]int, ActivityWeeks),
+				Contributors: []string{},
+				Error:        f.Error,
+				Cause:        f.Cause,
+			}
+		}
+		list[i].WorkTree = locs[names[i]].WorkTree
 	}
 	return list, nil
 }
@@ -117,6 +192,8 @@ func (s *CLIStore) located(ctx context.Context) (map[string]Location, []string, 
 		}
 	}
 	s.locs, s.names, s.scannedAt = locs, names, time.Now()
+	// the warm reads the scan this call just stored, once locMu is released
+	s.Warm() //nolint:contextcheck // the warm outlives the request whose call rescanned
 	return locs, names, nil
 }
 
@@ -170,8 +247,15 @@ func (s *CLIStore) forget(name string) {
 	s.cacheMu.Unlock()
 }
 
-// Close stops every git process the store keeps open.
+// Close cancels a warm in flight, waits for it and stops every git process the store keeps open.
 func (s *CLIStore) Close() error {
+	s.warmMu.Lock()
+	if !s.closed {
+		s.closed = true
+		close(s.stop)
+	}
+	s.warmMu.Unlock()
+	s.warms.Wait()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for name, r := range s.repos {

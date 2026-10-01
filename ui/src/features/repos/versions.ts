@@ -1,3 +1,5 @@
+import type { ActivityTag } from '@/api/types'
+
 const VERSION = /^(?:(.+)\/)?(v?\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.+-]+)?)$/
 
 export type TagName = {
@@ -65,6 +67,18 @@ export function buildReleases(
     older.set(track, r)
   }
   return list
+}
+
+// the aggregate feed links each tag to the previous release on its track server side
+export function toRelease(tag: ActivityTag): Release {
+  return {
+    repo: tag.repo,
+    name: tag.name,
+    commit: tag.commit,
+    taggedAt: tag.tagged_at,
+    previous: tag.previous,
+    ...splitTag(tag.name),
+  }
 }
 
 export function monthKey(iso: string): string {

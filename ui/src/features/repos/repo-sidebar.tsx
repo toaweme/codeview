@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, TriangleAlert } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { Repo } from '@/api/types'
 import { Badge } from '@/components/badge'
@@ -10,6 +10,7 @@ import { usePersistedState } from '@/lib/use-persisted-state'
 import { loadRecents, pruneRecents } from './recents'
 import { RepoGlyph } from './repo-glyph'
 import { isFresh, type OrgTone, orgTone, rankRepos } from './sidebar-rank'
+import { UNREADABLE, unreadableTitle } from './unreadable'
 import { useRepoNames } from './use-repo-names'
 
 const DOT: Record<OrgTone, string> = {
@@ -180,6 +181,25 @@ function RepoRow({
   now: number
   label?: React.ReactNode
 }) {
+  const broken = unreadableTitle(repo)
+  if (broken)
+    return (
+      <span
+        title={broken}
+        className="flex h-(--row-h) items-center gap-2 rounded-lg px-2.5 text-base text-faint pointer-coarse:h-11"
+      >
+        {label ?? (
+          <>
+            <RepoGlyph name={repo.name} size="sm" />
+            <span className="truncate">{repoBase(repo.name)}</span>
+          </>
+        )}
+        <TriangleAlert
+          className="ml-auto size-3.5 shrink-0 text-del"
+          aria-label={UNREADABLE}
+        />
+      </span>
+    )
   return (
     <Link
       {...repoLink(repo.name, { kind: 'tree', path: '' })}

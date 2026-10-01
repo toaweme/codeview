@@ -7,12 +7,15 @@ export class ApiError extends Error {
   }
 }
 
-export type Params = Record<string, string | number | undefined>
+// an array repeats its key, once per value
+export type Params = Record<string, string | number | string[] | undefined>
 
 export function apiUrl(path: string, params: Params = {}): string {
   const q = new URLSearchParams()
   for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== '') q.set(k, String(v))
+    for (const item of Array.isArray(v) ? v : [v]) {
+      if (item !== undefined && item !== '') q.append(k, String(item))
+    }
   }
   const qs = q.toString()
   return `/api/${path}${qs ? `?${qs}` : ''}`

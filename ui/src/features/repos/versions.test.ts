@@ -4,6 +4,7 @@ import {
   compareVersions,
   isBotBranch,
   splitTag,
+  toRelease,
 } from './versions'
 
 describe('splitTag', () => {
@@ -55,6 +56,28 @@ describe('buildReleases', () => {
       ['mod/v0.1.0', ''],
       ['v1.0.0', ''],
     ])
+  })
+})
+
+describe('toRelease', () => {
+  test('keeps the server link and splits the version', () => {
+    const got = toRelease({
+      repo: 'o/r',
+      name: 'mod/v0.2.0',
+      commit: 'e',
+      tagged_at: '2026-09-05T00:00:00Z',
+      previous: 'mod/v0.1.0',
+    })
+    expect(got).toEqual({
+      repo: 'o/r',
+      name: 'mod/v0.2.0',
+      commit: 'e',
+      taggedAt: '2026-09-05T00:00:00Z',
+      previous: 'mod/v0.1.0',
+      prefix: 'mod',
+      version: 'v0.2.0',
+      isVersion: true,
+    })
   })
 })
 

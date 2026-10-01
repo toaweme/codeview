@@ -20,6 +20,7 @@ import { RepoPage } from '@/features/repo/repo-page'
 import { parseOverviewSearch } from '@/features/repos/overview-nav'
 import { recordRecent } from '@/features/repos/recents'
 import { RepoList } from '@/features/repos/repo-list'
+import { UnreadablePage } from '@/features/repos/unreadable-page'
 import { parseRepoPath, parseRepoSearch } from '@/lib/url'
 
 // a repository name has any number of segments, so the known names decide
@@ -110,6 +111,8 @@ function RepoRoute() {
     if (repo) recordRecent(repo)
   }, [repo])
   if (!loc) return <RepoList org={path} />
+  const unreadable = list?.repos.find((r) => r.name === loc.repo && r.error)
+  if (unreadable) return <UnreadablePage repo={unreadable} />
   if (loc.view.kind === 'compare' && mode) loc.view.mode = mode
   return <RepoPage loc={loc} />
 }

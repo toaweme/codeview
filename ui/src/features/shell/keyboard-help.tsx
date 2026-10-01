@@ -13,6 +13,13 @@ import {
   PLATFORM,
   useKeys,
 } from '@/lib/keymap'
+import { buildLabel } from './build-label'
+
+const REPO_URL = 'https://github.com/toaweme/codeview'
+const BUILD = buildLabel(
+  import.meta.env.VITE_VERSION,
+  import.meta.env.VITE_COMMIT,
+)
 
 const SECTIONS: { ctx: Context; title: string }[] = [
   { ctx: 'global', title: 'Global' },
@@ -127,17 +134,17 @@ export function KeyboardHelp() {
               'border-border/70 border-t px-6 py-3 text-faint text-sm',
             )}
           >
-            <span className="flex items-center gap-1.5 font-semibold text-muted-foreground tracking-tight">
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 font-semibold text-muted-foreground tracking-tight hover:text-foreground"
+            >
               <Mark />
               codeview
-            </span>
-            <span className="num">
-              {__APP_VERSION__}
-              {__APP_COMMIT__ && ` (${__APP_COMMIT__})`}
-            </span>
-            <span className="ml-auto">
-              A read-only code browser for your soft-serve repositories.
-            </span>
+            </a>
+            <span className="num">{BUILD}</span>
+            <span className="ml-auto">A read-only git repo browser.</span>
           </footer>
         </Dialog.Content>
       </Dialog.Portal>

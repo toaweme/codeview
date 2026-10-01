@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -28,8 +28,11 @@ import (
 
 const appName = "codeview"
 
-// version is set at release time through -ldflags -X main.version.
-var version = "dev"
+// version and commit are set at build time through -ldflags -X main.version and -X main.commit.
+var (
+	version = "dev"
+	commit  = ""
+)
 
 func main() {
 	cwd, err := os.Getwd()
@@ -103,16 +106,10 @@ func (c *ServeCommand) Run(_ cli.GlobalFlags, _ cli.Unknowns) error {
 		"host", cfg.Host,
 		"port", cfg.Port,
 	)
-	if mode == git.ModeAll && !isLoopback(cfg.Host) {
-		logger.Warn(
-			"service.unprotected",
-			"reason", "mode all serves every repository with no auth on a non-loopback host",
-			"host", cfg.Host,
-		)
-	}
-
-	store := git.NewCLIStore(git.Config{Locator: scanner, Mode: mode, Binary: cfg.Git})
+	build := buildID(version, commit, time.Now())
+	store := git.NewCLIStore(git.Config{Locator: scanner, Mode: mode, Binary: cfg.Git, Warm: true})
 	defer store.Close()
+	store.Warm()
 
 	files, err := webui.FS(c.ui)
 	if err != nil {
@@ -121,7 +118,7 @@ func (c *ServeCommand) Run(_ cli.GlobalFlags, _ cli.Unknowns) error {
 
 	r := server.NewRouter()
 	r.Use(server.SlogMiddleware(server.SlogConfig{}, logger))
-	r.Handle(http.MethodGet, "/api/*", api.New(store, markdown.NewGoldmark(), logger))
+	r.Handle(http.MethodGet, "/api/*", api.New(store, markdown.NewGoldmark(), logger, build))
 	r.Handle(http.MethodGet, "/*", webui.Handler(files))
 	r.Handle(http.MethodHead, "/*", webui.Handler(files))
 
@@ -152,10 +149,11 @@ func (c *ServeCommand) Run(_ cli.GlobalFlags, _ cli.Unknowns) error {
 	return nil
 }
 
-func isLoopback(host string) bool {
-	if host == "localhost" {
-		return true
+// buildID names the build for API entity tags. A development build, with no version
+// or commit stamped in, is named after its start time so each run revalidates afresh.
+func buildID(version, commit string, started time.Time) string {
+	if version == "" || version == "dev" || commit == "" {
+		return "dev-" + strconv.FormatInt(started.UnixNano(), 36)
 	}
-	ip := net.ParseIP(host)
-	return ip != nil && ip.IsLoopback()
+	return version + "+" + commit
 }

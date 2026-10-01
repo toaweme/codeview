@@ -1,6 +1,6 @@
-import { type UseQueryResult, useQueries } from '@tanstack/react-query'
+import { type UseQueryResult, useInfiniteQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { refsQuery } from '@/api/queries'
+import { releasesQuery } from '@/api/queries'
 import type { Repo, RepoList } from '@/api/types'
 import { Segmented } from '@/components/segmented'
 import { ErrorState } from '@/features/shell/states'
@@ -8,14 +8,17 @@ import { usePersistedState } from '@/lib/use-persisted-state'
 import { shortRepo } from './activity-links'
 import {
   FilterBar,
+  MoreSentinel,
   PanelEmpty,
   ReleaseList,
   RepoFilter,
   RowsSkeleton,
 } from './activity-panels'
+import { FailedRepos } from './failed-repos'
+import { allUnreadable } from './unreadable'
 import { useRepoFilter } from './use-repo-filter'
 import { useRepoNames } from './use-repo-names'
-import { buildReleases, byMonth, groupReleases } from './versions'
+import { byMonth, groupReleases, toRelease } from './versions'
 
 type Grouping = 'month' | 'repo'
 type Shown = 'versions' | 'all'
@@ -41,28 +44,19 @@ export function ReleasesTab({
     () => new Map(tagged.map((r) => [r.name, r.tag_count])),
     [tagged],
   )
-  const inView = useMemo(
-    () => tagged.filter((r) => picked.length === 0 || picked.includes(r.name)),
-    [tagged, picked],
+  const feed = useInfiniteQuery(
+    releasesQuery(org, picked, shown === 'versions'),
   )
-  const refs = useQueries({
-    queries: inView.map((r) => refsQuery(r.name)),
-  })
-  const pending = repos.isPending || refs.some((q) => q.isPending)
-  const failed = inView.filter((_, i) => refs[i]?.isError).map((r) => r.name)
-
-  const all = inView.flatMap((r, i) => {
-    const data = refs[i]?.data
-    return data ? buildReleases(r.name, data.tags) : []
-  })
+  const pending = repos.isPending || feed.isPending
   const releases = useMemo(
-    () =>
-      all
-        .filter((r) => shown === 'all' || r.isVersion)
-        .sort((a, b) => Date.parse(b.taggedAt) - Date.parse(a.taggedAt)),
-    [all, shown],
+    () => feed.data?.pages.flatMap((p) => p.releases.map(toRelease)) ?? [],
+    [feed.data],
   )
-  const hidden = all.length - all.filter((r) => r.isVersion).length
+  // every page carries the counts for the whole selection
+  const counts = feed.data?.pages[0]
+  const total = (shown === 'all' ? counts?.total : counts?.versions) ?? 0
+  const hidden = counts ? counts.total - counts.versions : 0
+  const failed = feed.data?.pages.at(-1)?.failed ?? []
 
   const names = useRepoNames()
   const groups = useMemo(
@@ -83,7 +77,7 @@ export function ReleasesTab({
         count={
           pending
             ? undefined
-            : `${releases.length.toLocaleString()} ${releases.length === 1 ? 'release' : 'releases'}`
+            : `${total.toLocaleString()} ${total === 1 ? 'release' : 'releases'}`
         }
       >
         <RepoFilter
@@ -117,9 +111,10 @@ export function ReleasesTab({
           ]}
         />
       </FilterBar>
+      <FailedRepos failed={failed} />
       <div className="rounded-2xl bg-island-muted p-1.5">
-        {repos.isError ? (
-          <ErrorState error={repos.error} />
+        {repos.isError || feed.isError ? (
+          <ErrorState error={repos.error ?? feed.error} />
         ) : pending ? (
           <RowsSkeleton rows={12} />
         ) : releases.length === 0 ? (
@@ -129,6 +124,12 @@ export function ReleasesTab({
               title="No version tags here"
               description="Pick all tags to see the others."
             />
+          ) : allUnreadable(failed.length, picked.length || scope.length) ? (
+            <PanelEmpty
+              light
+              title="These repositories couldn't be read"
+              description="View the list above to see which ones."
+            />
           ) : (
             <PanelEmpty
               title="No releases yet"
@@ -136,16 +137,22 @@ export function ReleasesTab({
             />
           )
         ) : (
-          <ReleaseList
-            groups={groups}
-            org={org}
-            showRepo={grouping === 'month'}
-          />
-        )}
-        {failed.length > 0 && (
-          <p className="px-2.5 py-2 text-faint text-sm">
-            Could not load the tags of {failed.join(', ')}.
-          </p>
+          <>
+            <ReleaseList
+              groups={groups}
+              org={org}
+              showRepo={grouping === 'month'}
+            />
+            {feed.hasNextPage && (
+              <MoreSentinel
+                onMore={() => {
+                  if (!feed.isFetchingNextPage) feed.fetchNextPage()
+                }}
+                loading={feed.isFetchingNextPage}
+                auto
+              />
+            )}
+          </>
         )}
       </div>
     </section>

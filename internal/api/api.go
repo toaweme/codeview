@@ -33,35 +33,38 @@ type handler struct {
 	markdown   markdown.Renderer
 	logger     server.Logger
 	histograms *histogramCache
+	// build goes into every entity tag, so a new build never revalidates an old response.
+	build string
 }
 
 // New returns an http.Handler serving every path under /api.
-func New(store git.Store, md markdown.Renderer, logger server.Logger) http.Handler {
-	h := &handler{store: store, markdown: md, logger: logger, histograms: newHistogramCache()}
+// Build identifies the running build and is used as-is in every entity tag,
+// so it must change whenever the code that renders a response does.
+func New(store git.Store, md markdown.Renderer, logger server.Logger, build string) http.Handler {
+	h := &handler{
+		store:      store,
+		markdown:   md,
+		logger:     logger,
+		histograms: newHistogramCache(),
+		build:      build,
+	}
 	r := server.NewRouter()
-	r.Get("/api/repos", h.repos)
-	r.Get("/api/activity", h.activity)
-	r.Get("/api/refs", h.refs)
-	r.Get("/api/tree", h.tree)
-	r.Get("/api/blob", h.blob)
-	r.Get("/api/raw", h.raw)
-	r.Get("/api/render", h.render)
-	r.Get("/api/log", h.log)
-	r.Get("/api/log/histogram", h.histogram)
-	r.Get("/api/commit", h.commit)
-	r.Get("/api/compare", h.compare)
-	r.Get("/api/blame", h.blame)
+	r.Get("/api/repos", h.revalidated(everyRepo, h.repos))
+	r.Get("/api/activity", h.revalidated(everyRepo, h.activity))
+	r.Get("/api/activity/commits", h.revalidated(everyRepo, h.activityCommits))
+	r.Get("/api/activity/releases", h.revalidated(everyRepo, h.activityReleases))
+	r.Get("/api/refs", h.revalidated(oneRepo(), h.refs))
+	r.Get("/api/tree", h.revalidated(oneRepo("ref"), h.tree))
+	r.Get("/api/blob", h.revalidated(oneRepo("ref"), h.blob))
+	r.Get("/api/raw", h.revalidated(oneRepo("ref"), h.raw))
+	r.Get("/api/render", h.revalidated(oneRepo("ref"), h.render))
+	r.Get("/api/log", h.revalidated(historyTag, h.log))
+	r.Get("/api/log/histogram", h.revalidated(oneRepo("ref"), h.histogram))
+	r.Get("/api/commit", h.revalidated(oneRepo("hash"), h.commit))
+	r.Get("/api/compare", h.revalidated(oneRepo("base", "head"), h.compare))
+	r.Get("/api/blame", h.revalidated(oneRepo("ref"), h.blame))
 	r.Get("/api/*", h.notFound)
-	return cacheHeaders(r)
-}
-
-// cacheHeaders keeps responses out of every cache,
-// since the same URL answers differently whenever a branch moves.
-func cacheHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "no-store")
-		next.ServeHTTP(w, r)
-	})
+	return revalidate(r)
 }
 
 func (h *handler) notFound(w http.ResponseWriter, r *http.Request) {
@@ -134,6 +137,11 @@ func (h *handler) repos(w http.ResponseWriter, r *http.Request) {
 	if repos == nil {
 		repos = []git.RepoSummary{}
 	}
+	for _, repo := range repos {
+		if repo.Error != "" {
+			h.logger.Error("api.repo.skipped", "path", r.URL.Path, "repo", repo.Name, "error", repo.Cause)
+		}
+	}
 	server.WriteJSON(w, http.StatusOK, reposResponse{Repos: repos})
 }
 
@@ -160,6 +168,7 @@ func (h *handler) activity(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, fmt.Errorf("failed to read recent activity: %w", err))
 		return
 	}
+	h.logFailed(r, act.Failed)
 	server.WriteJSON(w, http.StatusOK, act)
 }
 

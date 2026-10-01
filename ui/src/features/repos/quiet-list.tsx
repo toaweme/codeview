@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { TriangleAlert } from 'lucide-react'
 import type { Repo } from '@/api/types'
 import { Highlighted } from '@/components/highlighted'
 import { cn } from '@/lib/cn'
@@ -8,6 +9,7 @@ import { repoLink } from '@/lib/url'
 import { TEXT_LINK } from './activity-panels'
 import { RepoGlyph } from './repo-glyph'
 import { RAISED } from './repo-tile'
+import { UNREADABLE, unreadableTitle } from './unreadable'
 
 // QuietList is the compact list of repositories without recent commits.
 export function QuietList({
@@ -52,6 +54,30 @@ export function QuietList({
           const i = offset + j
           const home = repoLink(repo.name, { kind: 'tree', path: '' })
           const c = repo.last_commit
+          const broken = unreadableTitle(repo)
+          if (broken)
+            return (
+              <li
+                key={repo.name}
+                data-index={i}
+                title={broken}
+                onMouseEnter={() => onHover(i)}
+                onMouseLeave={onLeave}
+                className={cn(
+                  'flex h-12 min-w-0 items-center gap-3 rounded-xl px-2.5',
+                  i === sel && RAISED,
+                )}
+              >
+                <RepoGlyph name={repo.name} size="row" />
+                <span className="w-32 shrink-0 truncate font-medium text-muted-foreground sm:w-44">
+                  <Highlighted text={name} positions={positions} />
+                </span>
+                <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-del">
+                  <TriangleAlert className="size-4 shrink-0" aria-hidden />
+                  {UNREADABLE}
+                </span>
+              </li>
+            )
           return (
             <li
               key={repo.name}

@@ -21,7 +21,7 @@ func newHistoryServer(t *testing.T) (gittest.History, http.Handler) {
 	f := gittest.NewHistory(t)
 	store := git.NewCLIStore(git.Config{Locator: scan.New(scan.Config{Dir: f.Root}), Mode: git.ModeAll})
 	t.Cleanup(func() { _ = store.Close() })
-	return f, api.New(store, markdown.NewGoldmark(), log.Discard())
+	return f, api.New(store, markdown.NewGoldmark(), log.Discard(), "test")
 }
 
 func pages(t *testing.T, h http.Handler, filter params) []string {

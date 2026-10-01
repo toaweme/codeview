@@ -12,11 +12,13 @@ import type {
   Blob,
   Commit,
   CommitDetail,
+  CommitFeed,
   Compare,
   FileList,
   Histogram,
   Log,
   Refs,
+  ReleaseFeed,
   Rendered,
   RepoList,
   Tree,
@@ -50,6 +52,59 @@ export const repoActivityQuery = (repo: string) =>
     queryKey: ['activity', 'repo', repo],
     queryFn: ({ signal }) =>
       getJSON<Activity>('activity', { repo, limit: 50 }, signal),
+    staleTime: 60_000,
+  })
+
+const FEED_PAGE = 40
+
+// repos narrows the feed to picked names, and every repository under org otherwise
+export type CommitFilter = { since?: string; author?: string; message?: string }
+
+export const activityCommitsQuery = (
+  org: string | undefined,
+  repos: string[],
+  filter: CommitFilter,
+) =>
+  infiniteQueryOptions({
+    queryKey: ['activity', 'commits', org ?? '', repos, filter],
+    queryFn: ({ signal, pageParam }) =>
+      getJSON<CommitFeed>(
+        'activity/commits',
+        {
+          org,
+          repo: repos,
+          ...filter,
+          cursor: pageParam,
+          limit: FEED_PAGE,
+        },
+        signal,
+      ),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next || undefined,
+    staleTime: 60_000,
+  })
+
+export const releasesQuery = (
+  org: string | undefined,
+  repos: string[],
+  versions: boolean,
+) =>
+  infiniteQueryOptions({
+    queryKey: ['activity', 'releases', org ?? '', repos, versions],
+    queryFn: ({ signal, pageParam }) =>
+      getJSON<ReleaseFeed>(
+        'activity/releases',
+        {
+          org,
+          repo: repos,
+          versions: versions ? 'true' : undefined,
+          cursor: pageParam,
+          limit: FEED_PAGE,
+        },
+        signal,
+      ),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next || undefined,
     staleTime: 60_000,
   })
 

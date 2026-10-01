@@ -44,7 +44,7 @@ func Handler(files fs.FS) http.Handler {
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		// index.html names the current asset hashes
-		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Cache-Control", "no-cache")
 		_, _ = w.Write(index)
 	})
 }
