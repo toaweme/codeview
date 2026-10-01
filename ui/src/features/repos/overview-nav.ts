@@ -10,6 +10,18 @@ export const OVERVIEW_VIEWS = [
 
 export type OverviewView = (typeof OVERVIEW_VIEWS)[number]
 
+export const OVERVIEW_LABELS: Record<OverviewView, string> = {
+  overview: 'Overview',
+  activity: 'Activity',
+  releases: 'Releases',
+  branches: 'Branches',
+}
+
+// overviewTab is the label of a non-default tab, for the page title
+export function overviewTab(search: OverviewSearch): string | undefined {
+  return search.view && OVERVIEW_LABELS[search.view]
+}
+
 export type OverviewSearch = {
   view?: Exclude<OverviewView, 'overview'>
   repos?: string

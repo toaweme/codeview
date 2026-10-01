@@ -170,17 +170,10 @@ function Rows({ ids }: { ids: KeyId[] }) {
 
 function Mark() {
   return (
-    <svg
-      viewBox="0 0 16 16"
-      className="size-4 text-primary"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      aria-hidden="true"
-    >
-      <path d="M4 8h8" />
-      <circle cx="3.5" cy="8" r="2" fill="var(--island)" />
-      <circle cx="12.5" cy="8" r="2" fill="currentColor" />
-    </svg>
+    <img
+      src={`${import.meta.env.BASE_URL}favicon.svg`}
+      alt=""
+      className="size-4"
+    />
   )
 }

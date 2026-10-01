@@ -17,11 +17,13 @@ import {
 import type { RepoList as RepoListData } from '@/api/types'
 import { apiParams, parseHistoryFilter } from '@/features/commits/filters'
 import { RepoPage } from '@/features/repo/repo-page'
-import { parseOverviewSearch } from '@/features/repos/overview-nav'
+import { overviewTab, parseOverviewSearch } from '@/features/repos/overview-nav'
 import { recordRecent } from '@/features/repos/recents'
 import { RepoList } from '@/features/repos/repo-list'
 import { UnreadablePage } from '@/features/repos/unreadable-page'
+import { pageTitle } from '@/lib/title'
 import { parseRepoPath, parseRepoSearch } from '@/lib/url'
+import { useTitle } from '@/lib/use-title'
 
 // a repository name has any number of segments, so the known names decide
 // where the name ends and the view begins
@@ -102,7 +104,7 @@ export const Route = createFileRoute('/$org/$')({
 
 function RepoRoute() {
   const { org, _splat } = Route.useParams()
-  const { mode } = Route.useSearch()
+  const search = Route.useSearch()
   const list = useQuery(reposQuery()).data
   const path = [org, _splat].filter(Boolean).join('/')
   const loc = parseRepoPath(path, repoNames(list))
@@ -110,9 +112,20 @@ function RepoRoute() {
   useEffect(() => {
     if (repo) recordRecent(repo)
   }, [repo])
+  const hash = loc?.view.kind === 'commit' ? loc.view.hash : ''
+  const commit = useQuery({
+    ...commitQuery(repo ?? '', hash),
+    enabled: !!repo && !!hash,
+  }).data
+  if (loc?.view.kind === 'compare' && search.mode) loc.view.mode = search.mode
+  useTitle(
+    pageTitle(path, loc, {
+      subject: commit?.commit.subject,
+      tab: overviewTab(search),
+    }),
+  )
   if (!loc) return <RepoList org={path} />
   const unreadable = list?.repos.find((r) => r.name === loc.repo && r.error)
   if (unreadable) return <UnreadablePage repo={unreadable} />
-  if (loc.view.kind === 'compare' && mode) loc.view.mode = mode
   return <RepoPage loc={loc} />
 }

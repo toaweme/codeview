@@ -1,4 +1,4 @@
-# codeview
+# <img src="ui/public/favicon.svg" alt="" width="32" align="top"> codeview
 
 [![Quality](https://github.com/toaweme/codeview/actions/workflows/quality.yml/badge.svg)](https://github.com/toaweme/codeview/actions/workflows/quality.yml)
 <a href="https://code.toawe.me/toaweme/codeview/health">

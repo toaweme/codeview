@@ -10,6 +10,8 @@ import { copyText } from '@/lib/clipboard'
 import { ActivityTab } from './activity-tab'
 import { BranchesTab } from './branches-tab'
 import {
+  OVERVIEW_LABELS,
+  OVERVIEW_VIEWS,
   type OverviewView,
   overviewLink,
   parseOverviewSearch,
@@ -19,12 +21,10 @@ import { ReleasesTab } from './releases-tab'
 import { RepoSidebar } from './repo-sidebar'
 import { useRepoNames } from './use-repo-names'
 
-const TABS: { value: OverviewView; label: string }[] = [
-  { value: 'overview', label: 'Overview' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'releases', label: 'Releases' },
-  { value: 'branches', label: 'Branches' },
-]
+const TABS = OVERVIEW_VIEWS.map((value) => ({
+  value,
+  label: OVERVIEW_LABELS[value],
+}))
 
 export function RepoList({ org }: { org?: string }) {
   const q = useQuery(reposQuery())
