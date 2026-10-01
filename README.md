@@ -13,6 +13,12 @@
 
 A fast, read-only web UI for your git repositories.
 
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/hero-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset=".github/screenshots/hero-light.png">
+    <img alt="codeview file view" src=".github/screenshots/hero-light.png">
+</picture>
+
 ## Features
 
 - Multi-organization dashboard, per organization and per repo views
@@ -23,6 +29,17 @@ A fast, read-only web UI for your git repositories.
 - Blame view
 - Fuzzy file finder
 - Keyboard shortcuts
+
+<table>
+    <tr>
+        <td><img alt="Dashboard" src=".github/screenshots/dashboard.png"></td>
+        <td><img alt="Commit log" src=".github/screenshots/log.png"></td>
+    </tr>
+    <tr>
+        <td><img alt="Commit diff" src=".github/screenshots/diff.png"></td>
+        <td><img alt="Blame" src=".github/screenshots/blame.png"></td>
+    </tr>
+</table>
 
 ## Quickstart
 
