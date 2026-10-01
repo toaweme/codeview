@@ -5,6 +5,12 @@ All notable changes to this project are documented here, newest first.
 Entries are generated from [Conventional Commits](https://www.conventionalcommits.org)
 and grouped by change type. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-10-01
+
+### Chores & Other
+
+- Social sharing by [@iberflow](https://github.com/iberflow) in [0bede64](https://github.com/toaweme/codeview/commit/0bede647d4ae955061126c1cbc00c7139ba7af72).
+
 ## [0.1.0] - 2026-10-01
 
 ### Features
@@ -54,4 +60,5 @@ and grouped by change type. This project adheres to [Semantic Versioning](https:
 - Cleanup api by [@iberflow](https://github.com/iberflow) in [ff2205e](https://github.com/toaweme/codeview/commit/ff2205e58f11d95e45be9255a4f6dff38a962eed).
 - Add taskfile, blink and docker-compose with soft-serve by [@iberflow](https://github.com/iberflow) in [4f13c93](https://github.com/toaweme/codeview/commit/4f13c93eb94c9d10e8bdf9255b3abd7e4a3159ea).
 
+[0.1.1]: https://github.com/toaweme/codeview/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/toaweme/codeview/releases/tag/v0.1.0
